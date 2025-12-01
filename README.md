@@ -14,5 +14,11 @@
 - Next.js 14 (App Router)
 - Tailwind CSS v4
 - Neople OpenAPI (DNF OFFICIAL)
-- Google Gemini 1.5/2.0 Vision API
+- Google Gemini 2.5 pro Vision API
 - Serverless API Routes
+
+### 🔗 Live Demo
+https://dnf-ai-fight.vercel.app/
+
+### 🖼️ Screenshot
+<img width="1110" height="449" alt="image" src="https://github.com/user-attachments/assets/5c9a539e-19b1-46d6-ad1c-12c4c5ff63a2" />
