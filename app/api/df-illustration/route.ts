@@ -127,7 +127,7 @@
 // }
 
 
-//app/api/df-illustration/route.ts 에코버전
+//app/api/df-illustration/route.ts 에코버전 -> 사용후 배포시기가 되면 아래 나노바나나 사용 tier1 버전으로 교체
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
