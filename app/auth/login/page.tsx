@@ -1,4 +1,5 @@
 // app/auth/login/page.tsx
+//http://localhost:3000/api/auth/session <- auth 확인 방법 링크
 "use client";
 
 import Link from "next/link";
@@ -10,7 +11,7 @@ export default function LoginPage() {
   };
 
   const handleKakaoLogin = () => {
-    // signIn("kakao", { callbackUrl: "/" });
+    signIn("kakao", { callbackUrl: "/" });
   };
 
   return (
