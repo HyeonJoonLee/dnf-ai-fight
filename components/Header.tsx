@@ -4,16 +4,26 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 
-const navItems = [
-    { href: "/", label: "메인", disabled: false },
-    // 나중에 구현 예정인 페이지들 (지금은 비활성 표시만)
-    { href: "/me", label: "내 캐릭터", disabled: true },
-    { href: "/battle", label: "전투하기", disabled: true },
+type NavItem = {
+    href: string;
+    label: string;
+    authRequired: boolean;
+};
+
+const navItems: NavItem[] = [
+    { href: "/", label: "메인", authRequired: false },
+    { href: "/me", label: "내 캐릭터", authRequired: true },
+    { href: "/battle", label: "전투하기", authRequired: true },
 ];
 
 export default function Header() {
     const pathname = usePathname();
+    const { data: session, status } = useSession();
+
+    const user = session?.user;
+    const isAuthed = status === "authenticated";
 
     return (
         <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur">
@@ -42,15 +52,17 @@ export default function Header() {
                 <nav className="hidden items-center gap-3 text-xs md:flex">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href;
+                        const isDisabled = item.authRequired && !isAuthed;
+
                         const base =
                             "px-3 py-1.5 rounded-md border border-transparent transition-colors";
 
-                        if (item.disabled) {
+                        if (isDisabled) {
                             return (
                                 <span
                                     key={item.href}
                                     className={`${base} cursor-not-allowed text-slate-500`}
-                                    title="추후 업데이트 예정"
+                                    title="로그인 후 이용 가능합니다"
                                 >
                                     {item.label}
                                 </span>
@@ -75,14 +87,46 @@ export default function Header() {
                     })}
                 </nav>
 
-                {/* 오른쪽: 로그인 버튼 (나중에 세션 연결) */}
+                {/* 오른쪽: 로그인/유저 */}
                 <div className="flex items-center gap-2">
-                    <Link
-                        href="/auth/login"
-                        className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 shadow-sm hover:bg-amber-400"
-                    >
-                        로그인
-                    </Link>
+                    {status === "loading" ? (
+                        <div className="h-8 w-24 animate-pulse rounded-md bg-slate-800" />
+                    ) : isAuthed ? (
+                        <div className="flex items-center gap-2">
+                            {/* 프로필 */}
+                            <div className="flex items-center gap-2 rounded-md border border-slate-800 bg-slate-900/60 px-2 py-1.5">
+                                <div className="relative h-6 w-6 overflow-hidden rounded-full border border-slate-700 bg-slate-800">
+                                    {user?.image ? (
+                                        // 외부 이미지면 next.config.js에 domains 추가 필요할 수 있음.
+                                        // 당장 깨지면 <img>로 바꿔도 됨.
+                                            <img src={user?.image ?? ""} alt="profile" className="h-6 w-6 rounded-full object-cover" />
+                                    ) : (
+                                        <div className="h-6 w-6" />
+                                    )}
+                                </div>
+
+                                <div className="max-w-[120px] truncate text-xs text-slate-200">
+                                    {user?.name ?? "유저"}
+                                </div>
+                            </div>
+
+                            {/* 로그아웃 */}
+                            <button
+                                type="button"
+                                onClick={() => signOut({ callbackUrl: "/" })}
+                                className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+                            >
+                                로그아웃
+                            </button>
+                        </div>
+                    ) : (
+                        <Link
+                            href="/auth/login"
+                            className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 shadow-sm hover:bg-amber-400"
+                        >
+                            로그인
+                        </Link>
+                    )}
                 </div>
             </div>
         </header>
