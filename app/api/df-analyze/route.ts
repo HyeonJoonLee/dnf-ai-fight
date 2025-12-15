@@ -2,11 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-<<<<<<< HEAD
-const genAI = new GoogleGenerativeAI(process.env.FREETIER_GEMINI_KEY || "");
-=======
 const genAI = new GoogleGenerativeAI(process.env.FREETIER_GEMINI_KEY || "");  //베포 전 프리티어 API로 바꿔놓음
->>>>>>> dev
 
 const model = genAI.getGenerativeModel({
   // 멀티모달 지원 모델 (필요에 따라 최신 플래시/프로로 바꿔도 됨)
