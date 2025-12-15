@@ -2,7 +2,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+<<<<<<< HEAD
 const genAI = new GoogleGenerativeAI(process.env.FREETIER_GEMINI_KEY || "");
+=======
+const genAI = new GoogleGenerativeAI(process.env.FREETIER_GEMINI_KEY || "");  //베포 전 프리티어 API로 바꿔놓음
+>>>>>>> dev
 
 const model = genAI.getGenerativeModel({
   // 멀티모달 지원 모델 (필요에 따라 최신 플래시/프로로 바꿔도 됨)
@@ -78,14 +82,16 @@ export async function GET(req: NextRequest) {
 
     // 4) Gemini에게 전투 스타일 분석 요청
     const prompt = `
-이 이미지는 던전앤파이터 캐릭터의 모습이다.
-이 캐릭터의 전투 스타일을 게임 해설자처럼 한국어로 한 단락(3~4문장)으로 설명해줘.
+Describe the combat style of this character based on the image.
 
-설명 규칙:
-- 근접/원거리, 물리/마법, 공격적/방어적, 기동성 같은 전투 성향 위주로 말해줘.
-- 스킬 이름은 실제 게임 이름일 필요는 없고 느낌 위주로 지어도 된다.
-- 과장된 멋진 표현은 허용하지만, 설정을 너무 단정적으로 왜곡하지는 말 것.
-- 존댓말 말고 "~다"체로 작성해줘.
+Output:
+- Korean
+- 3–4 sentences, single paragraph
+- "~다" style, no honorifics
+
+Focus on combat traits:
+melee/ranged, physical/magical, offense/defense, mobility.
+Skill names may be fictional.
 `;
 
     const result = await model.generateContent([

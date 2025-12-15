@@ -2,6 +2,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { CharacterCard } from "@/components/CharacterCard";
 
 type Result = {
   character: {
@@ -27,6 +28,7 @@ const SERVERS = [
 ];
 
 export default function HomePage() {
+  const [aiImageUrl, setAiImageUrl] = useState<string | null>(null);
   const [serverId, setServerId] = useState("cain");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,6 +39,7 @@ export default function HomePage() {
     e.preventDefault();
     setError(null);
     setResult(null);
+    setAiImageUrl(null); // 새 검색마다 기존 일러스트 리셋
 
     if (!name.trim()) {
       setError("캐릭터명을 입력해 주세요.");
@@ -54,9 +57,48 @@ export default function HomePage() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "요청 실패");
-      } else {
-        setResult(data);
+        return;
       }
+
+      // 텍스트 분석 + 기본 이미지 먼저 화면에 표시
+      setResult(data);
+
+      try {
+        const illRes = await fetch("/api/df-illustration", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: data.character.name,
+            serverName: data.character.serverId,
+            spriteUrl: data.imageUrl,
+          }),
+        });
+
+        let illData: any = null;
+        try {
+          illData = await illRes.json();
+        } catch {
+          illData = null;
+        }
+
+        console.log("df-illustration 응답:", illRes.status, illData);
+        // const illData = await illRes.json();
+
+        if (illRes.ok && illData.imageUrl) {
+          setAiImageUrl(illData.imageUrl);
+          if (illData.fallback) {
+            console.warn("AI 일러스트 대신 원본 이미지로 fallback되었습니다.");
+            // 필요하면 화면에도 조그맣게 안내 문구 추가 가능
+          }
+        } else {
+          console.error("일러스트 생성 실패:", illData);
+          // 여기서 에러 메시지를 따로 띄우고 싶으면 setError 추가로 써도 됨
+        }
+      } catch (err) {
+        console.error("일러스트 생성 중 오류:", err);
+        // 일러스트만 실패해도 텍스트 분석은 이미 표시되어 있으므로 치명적이진 않음
+      }
+
     } catch (err: any) {
       console.error(err);
       setError("요청 중 오류가 발생했습니다.");
@@ -124,28 +166,25 @@ export default function HomePage() {
 
         {result && (
           <section className="mt-4 grid grid-cols-1 md:grid-cols-[220px,1fr] gap-4 bg-slate-900/70 p-4 rounded-xl border border-slate-700">
-            <div className="flex flex-col items-center gap-3">
-              <img
-                src={result.imageUrl}
-                alt={result.character.name}
-                className="rounded-md bg-slate-800 border border-slate-700"
-              />
-              <div className="text-center text-sm">
-                <div className="font-semibold">{result.character.name}</div>
-                <div className="text-slate-300">
-                  Lv.{result.character.level} {result.character.jobName}
-                </div>
-                <div className="text-xs text-slate-400 mt-1">
-                  서버: {result.character.serverId}
-                </div>
-              </div>
-            </div>
+            {/* 왼쪽: 캐릭터 카드 (앞면=원본, 나중에 뒷면=AI 일러스트) */}
+            <CharacterCard
+              name={result.character.name}
+              serverName={result.character.serverId}
+              spriteUrl={result.imageUrl}
+              aiImageUrl={aiImageUrl ?? undefined}
+            />
 
-            <div className="text-sm leading-relaxed whitespace-pre-line">
+            {/* 오른쪽: 전투 스타일 분석 텍스트 */}
+            <div className="text-sm leading-relaxed whitespace-pre-line flex flex-col">
               <h2 className="font-semibold mb-2 text-emerald-300">
                 AI 전투 스타일 분석
               </h2>
-              {result.analysis}
+              <div className="text-slate-100 flex-1">{result.analysis}</div>
+
+              <div className="mt-4 text-xs text-slate-400">
+                Lv.{result.character.level} {result.character.jobName} · 서버:{" "}
+                {result.character.serverId}
+              </div>
             </div>
           </section>
         )}
