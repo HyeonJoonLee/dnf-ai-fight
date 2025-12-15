@@ -110,6 +110,45 @@ export default function MyPage() {
         setOpen(false);
     }
 
+    useEffect(() => {
+        if (status !== "authenticated") return;
+
+        (async () => {
+            try {
+                const res = await fetch("/api/my/characters", { cache: "no-store" });
+                const data = await res.json();
+                if (!res.ok) {
+                    console.error("GET /api/my/characters failed:", data);
+                    return;
+                }
+                setCharacters(data.characters ?? []);
+            } catch (e) {
+                console.error("Failed to load characters:", e);
+            }
+        })();
+    }, [status]);
+
+    async function handleDeleteCharacter(id: string) {
+        const ok = confirm("정말 삭제할까? (복구 불가)");
+        if (!ok) return;
+
+        try {
+            const res = await fetch(`/api/my/characters/${id}`, { method: "DELETE" });
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.error || "삭제 실패");
+                return;
+            }
+
+            // ✅ 상태에서 제거 → 슬롯이 빈칸(+)으로 바뀜
+            setCharacters((prev) => prev.filter((c) => c.id !== id));
+            setSelected(null);
+        } catch {
+            alert("삭제 중 오류 발생");
+        }
+    }
+
     return (
         <main className="min-h-[calc(100vh-56px)] bg-slate-950 text-slate-100 px-6 py-10">
             <div className="mx-auto max-w-5xl">
@@ -213,6 +252,7 @@ export default function MyPage() {
                 <CharacterDetailModal
                     character={selected}
                     onClose={() => setSelected(null)}
+                    onDelete={handleDeleteCharacter}
                 />
             )}
         </main>
