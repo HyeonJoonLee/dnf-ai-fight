@@ -85,25 +85,47 @@ export default function RegisterCharacterModal({
 
         setLoading(true);
         setError(null);
+
         try {
-            // TODO: 실제로는 /api/my/characters에 POST해서 DB에 저장
-            // 지금은 데모로 바로 등록 처리
-            onRegistered({
-                id: crypto.randomUUID(),
-                serverId: result.character.serverId,
-                characterName: result.character.name,
-                jobName: result.character.jobName,
-                level: result.character.level,
-                imageUrl: result.imageUrl,
-                wins: 0,
-                analysis: result.analysis,
+            const res = await fetch("/api/my/characters", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    serverId: result.character.serverId,
+                    characterName: result.character.name,
+                    dnfCharacterId: result.character.characterId,
+                    jobName: result.character.jobName,
+                    level: result.character.level,
+                    imageUrl: result.imageUrl,
+                    analysis: result.analysis,
+                }),
             });
-        } catch (err) {
+
+            const data = await res.json();
+            if (!res.ok) {
+                setError(data.error || "등록 실패");
+                return;
+            }
+
+            // DB에서 반환된 row를 MyPage state에 반영
+            onRegistered({
+                id: data.character.id,
+                serverId: data.character.server_id,
+                characterName: data.character.character_name,
+                jobName: data.character.job_name ?? undefined,
+                level: data.character.level ?? undefined,
+                imageUrl: data.character.last_image_url ?? undefined,
+                wins: data.character.wins ?? 0,
+                analysis: data.character.last_analysis ?? result.analysis ?? undefined,
+            });
+
+        } catch (e) {
             setError("등록 중 오류가 발생했습니다.");
         } finally {
             setLoading(false);
         }
     }
+
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
