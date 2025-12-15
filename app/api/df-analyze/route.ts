@@ -6,7 +6,7 @@ const genAI = new GoogleGenerativeAI(process.env.FREETIER_GEMINI_KEY || "");  //
 
 const model = genAI.getGenerativeModel({
   // 멀티모달 지원 모델 (필요에 따라 최신 플래시/프로로 바꿔도 됨)
-  model: "gemini-2.5-pro",
+  model: "gemini-2.5-flash",
 });
 
 export async function GET(req: NextRequest) {
