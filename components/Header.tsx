@@ -43,7 +43,7 @@ export default function Header() {
                             DNF AI Arena
                         </div>
                         <div className="text-[11px] text-slate-400">
-                            던파 캐릭터 기반 AI 전투 & 일러스트
+                            던파 캐릭터 기반 AI 아레나
                         </div>
                     </div>
                 </Link>
