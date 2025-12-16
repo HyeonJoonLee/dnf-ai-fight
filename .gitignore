@@ -47,3 +47,5 @@ next-env.d.ts
 .env*.local
 
 /app/generated/prisma
+
+prisma.config.ts.bak
