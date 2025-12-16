@@ -193,6 +193,7 @@ export default function MyPage() {
                                           h-[180px]
                                           object-contain
                                           drop-shadow-[0_14px_32px_rgba(0,0,0,0.75)]
+                                          transition-transform ease-in-out hover:scale-120
                                         "
                             />
                         ) : (
