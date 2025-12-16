@@ -1,5 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { CHARACTER_BACKGROUNDS, type CharacterBgKey }
+    from "../src/constants/characterBackgrounds";
+
 type MyCharacter = {
     id: string;
     serverId: string;
@@ -20,6 +24,27 @@ export default function CharacterDetailModal({
     onClose: () => void;
     onDelete: (id: string) => void;
 }) {
+
+    const LS_BG_KEY = `dnfai:character-bg:${character.id}`;
+
+    const [bgKey, setBgKey] = useState<CharacterBgKey>("A");
+    const [loaded, setLoaded] = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem(LS_BG_KEY) as CharacterBgKey | null;
+        if (saved && CHARACTER_BACKGROUNDS.some((b) => b.key === saved)) {
+            setBgKey(saved);
+        }
+        setLoaded(true);
+    }, [LS_BG_KEY]);
+
+    useEffect(() => {
+        if (!loaded) return;            // ✅ 여기 중요 (초기 A 덮어쓰기 방지)
+        localStorage.setItem(LS_BG_KEY, bgKey);
+    }, [loaded, LS_BG_KEY, bgKey]);
+
+    const bg = CHARACTER_BACKGROUNDS.find(b => b.key === bgKey)!;
+    
     return (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
             {/* dim */}
@@ -51,7 +76,35 @@ export default function CharacterDetailModal({
                         <section className="grid grid-cols-1 md:grid-cols-[260px,1fr] gap-4">
                             {/* left card */}
                             <div className="rounded-2xl border border-slate-800 bg-slate-900/40 overflow-hidden">
-                                <div className="flex h-56 items-center justify-center bg-gradient-to-b from-indigo-600/40 to-indigo-700/30">
+                                <div
+                                    className="relative flex h-56 items-center justify-center"
+                                    style={{
+                                        backgroundImage: `url(${bg.image})`,
+                                        backgroundSize: "cover",
+                                        backgroundPosition: bg.position,
+                                    }}
+                                >
+                                    <div className="absolute right-3 top-3 z-10 flex gap-2">
+                                        {CHARACTER_BACKGROUNDS.map((b) => {
+                                            const active = bgKey === b.key;
+
+                                            return (
+                                                <button
+                                                    key={b.key}
+                                                    type="button"
+                                                    onClick={() => setBgKey(b.key)}
+                                                    className={`
+                                                              h-4 w-4 rounded-sm transition
+                                                              ${b.color}
+                                                              ${active
+                                                        ? "ring-2 ring-white shadow-[0_0_8px_rgba(255,255,255,0.6)] scale-110"
+                                                        : "opacity-70 hover:opacity-100"}
+                                                            `}
+                                                    title={b.label}
+                                                />
+                                            );
+                                        })}
+                                    </div>
                                     {character.imageUrl ? (
                                         <img
                                             src={character.imageUrl}
@@ -59,7 +112,7 @@ export default function CharacterDetailModal({
                                             className="max-h-full scale-125 object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]"
                                         />
                                     ) : (
-                                        <div className="h-24 w-24 rounded-xl bg-slate-800" />
+                                        <div className="h-64 w-64 rounded-xl bg-slate-800" />
                                     )}
                                 </div>
 
@@ -103,7 +156,7 @@ export default function CharacterDetailModal({
                                     <div className="mt-2 rounded-xl border border-slate-800 bg-slate-950/40 p-3 text-sm leading-relaxed whitespace-pre-line">
                                         {character.analysis?.trim()
                                             ? character.analysis
-                                            : "아직 전투 성향 분석이 없다. '분석하기' 버튼을 추가해도 좋다."}
+                                            : "아직 전투 성향 분석이 없다. '분석하기' 를 누르면 전투 성향 분석이 가능하다."}
                                     </div>
                                 </div>
 

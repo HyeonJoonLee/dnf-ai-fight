@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import AppTooltip from "@/components/common/AppTooltip";
 
 type NavItem = {
     href: string;
@@ -43,7 +44,7 @@ export default function Header() {
                             DNF AI Arena
                         </div>
                         <div className="text-[11px] text-slate-400">
-                            던파 캐릭터 기반 AI 전투 & 일러스트
+                            던파 캐릭터 기반 AI 아레나
                         </div>
                     </div>
                 </Link>
@@ -59,13 +60,13 @@ export default function Header() {
 
                         if (isDisabled) {
                             return (
-                                <span
-                                    key={item.href}
-                                    className={`${base} cursor-not-allowed text-slate-500`}
-                                    title="로그인 후 이용 가능합니다"
-                                >
-                                    {item.label}
-                                </span>
+                                <AppTooltip key={item.href} content="로그인 후 이용 가능합니다">
+                                    <span                                        
+                                        className={`${base} cursor-not-allowed text-slate-500`}
+                                    >
+                                        {item.label}
+                                    </span>
+                                </AppTooltip>
                             );
                         }
 
