@@ -61,19 +61,43 @@ export default function RegisterCharacterModal({
         }
 
         setLoading(true);
+
         try {
-            const res = await fetch(
-                `/api/df-analyze?serverId=${serverId}&characterName=${encodeURIComponent(
-                    name.trim()
-                )}`
-            );
+            const res = await fetch("/api/df-analyze", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    serverId,
+                    characterName: name.trim(),
+                    save: true, // ✅ 여기!!
+                }),
+            });
+
             const data = await res.json();
+
             if (!res.ok) {
                 setError(data.error || "분석 실패");
                 return;
             }
+
             setResult(data);
-        } catch (err) {
+
+            // ✅ save=true라면 이미 DB에 들어간 상태
+            // 바로 MyPage state에 추가 가능
+            if (data.userCharacterId) {
+                onRegistered({
+                    id: data.userCharacterId, // user_characters.id
+                    serverId: data.character.serverId,
+                    characterName: data.character.characterName,
+                    jobName: data.character.jobName,
+                    level: data.character.level,
+                    imageUrl: data.imageUrl,
+                    analysis: data.analysis,
+                    wins: 0,
+                });
+            }
+
+        } catch {
             setError("요청 중 오류가 발생했습니다.");
         } finally {
             setLoading(false);
@@ -109,14 +133,14 @@ export default function RegisterCharacterModal({
 
             // DB에서 반환된 row를 MyPage state에 반영
             onRegistered({
-                id: data.character.id,
-                serverId: data.character.server_id,
-                characterName: data.character.character_name,
-                jobName: data.character.job_name ?? undefined,
-                level: data.character.level ?? undefined,
-                imageUrl: data.character.last_image_url ?? undefined,
+                id: data.character.id,                 // ucId
+                serverId: data.character.serverId,
+                characterName: data.character.characterName,
+                jobName: data.character.jobName,
+                level: data.character.level,
+                imageUrl: data.character.imageUrl,
                 wins: data.character.wins ?? 0,
-                analysis: data.character.last_analysis ?? result.analysis ?? undefined,
+                analysis: data.character.analysis ?? result.analysis ?? undefined,
             });
 
         } catch (e) {

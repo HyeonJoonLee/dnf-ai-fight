@@ -49,3 +49,6 @@ next-env.d.ts
 /app/generated/prisma
 
 prisma.config.ts.bak
+
+# Prisma migrations (DB는 Supabase에서 직접 관리)
+prisma/migrations/

@@ -1,82 +1,59 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url       = env("DATABASE_URL")   // 런타임(보통 pooler)
-  directUrl = env("DIRECT_URL")     // migrate용(무조건 direct)
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model app_users {
-  id               String   @id @db.Uuid
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   provider         String
   provider_user_id String
   nickname         String?
   email            String?
-  created_at       DateTime @default(now())
-
-  user_characters user_characters[]
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  battles          battles[]
+  characters       characters[]
+  user_characters  user_characters[]
 
   @@unique([provider, provider_user_id])
 }
 
-model characters {
-  id                String   @id @db.Uuid
-  user_id           String   @db.Uuid
-  server_id         String
-  character_name    String
-  dnf_character_id  String
-  job_name          String?
-  level             Int?
-  is_main           Boolean? @default(false)
-  last_image_url    String?
-  last_ai_image_url String?
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
-
-  wins          Int? // 이미 있음
-  last_analysis String? // 이미 있음
-
-  // ✅ 전투용 캐시
-  battle_tags             String[]  @default([])
-  battle_stats            Json?
-  battle_stats_version    Int       @default(1)
-  battle_stats_updated_at DateTime?
-}
-
 model battles {
-  id         String   @id @default(uuid()) @db.Uuid
-  created_at DateTime @default(now())
+  id                                                     String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  challenger_user_id                                     String     @db.Uuid
+  challenger_character_id                                String     @db.Uuid
+  target_character_id                                    String     @db.Uuid
+  winner_side                                            String
+  score_challenger                                       Decimal?   @db.Decimal
+  score_target                                           Decimal?   @db.Decimal
+  log_json                                               Json?
+  created_at                                             DateTime   @default(now()) @db.Timestamptz(6)
+  attacker_character_id                                  String?    @db.Uuid
+  defender_character_id                                  String?    @db.Uuid
+  winner_character_id                                    String?    @db.Uuid
+  winrate_a                                              Float?
+  winrate_b                                              Float?
+  score_a                                                Float?
+  score_b                                                Float?
+  delta                                                  Float?
+  highlights                                             Json?
+  characters_battles_challenger_character_idTocharacters characters @relation("battles_challenger_character_idTocharacters", fields: [challenger_character_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  app_users                                              app_users  @relation(fields: [challenger_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  characters_battles_target_character_idTocharacters     characters @relation("battles_target_character_idTocharacters", fields: [target_character_id], references: [id], onUpdate: NoAction)
 
-  attacker_uc_id String  @db.Uuid
-  defender_uc_id String  @db.Uuid
-  winner_uc_id   String? @db.Uuid
-
-  score_a   Float
-  score_b   Float
-  delta     Float
-  winrate_a Float
-  winrate_b Float
-
-  highlights Json? // string[]
-
-  attacker user_characters  @relation("battle_attacker", fields: [attacker_uc_id], references: [id])
-  defender user_characters  @relation("battle_defender", fields: [defender_uc_id], references: [id])
-  winner   user_characters? @relation("battle_winner", fields: [winner_uc_id], references: [id])
-
-  @@index([attacker_uc_id, created_at])
-  @@index([defender_uc_id, created_at])
+  @@index([challenger_user_id, created_at(sort: Desc)], map: "battles_challenger_user_idx")
+  @@index([target_character_id, created_at(sort: Desc)], map: "battles_target_character_idx")
+  @@index([attacker_character_id, created_at], map: "idx_battles_attacker_created")
+  @@index([defender_character_id, created_at], map: "idx_battles_defender_created")
+  @@index([winner_character_id, created_at], map: "idx_battles_winner_created")
 }
 
 model character_profiles {
-  id                      String    @id @default(uuid()) @db.Uuid
+  id                      String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   server_id               String
   dnf_character_id        String
   character_name          String
@@ -85,45 +62,32 @@ model character_profiles {
   last_image_url          String?
   last_ai_image_url       String?
   last_analysis           String?
-  battle_tags             String[]  @default([])
+  battle_tags             String[]          @default([])
   battle_stats            Json?
-  battle_stats_version    Int       @default(1)
-  battle_stats_updated_at DateTime?
+  battle_stats_version    Int               @default(1)
+  battle_stats_updated_at DateTime?         @db.Timestamptz(6)
+  created_at              DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime          @default(now()) @updatedAt @db.Timestamptz(6)
+  user_characters         user_characters[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  user_characters user_characters[]
-
-  @@unique([server_id, dnf_character_id])
-  @@index([server_id, character_name])
+  @@unique([server_id, dnf_character_id], map: "character_profiles_server_dnf_uidx")
+  @@index([server_id, character_name], map: "character_profiles_server_name_idx")
 }
 
 model user_characters {
-  id         String @id @default(uuid()) @db.Uuid
-  user_id    String @db.Uuid
-  profile_id String @db.Uuid
-
-  wins    Int     @default(0)
-  is_main Boolean @default(false)
-
-  // 선택: UI 슬롯 고정이면
+  id         String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String             @db.Uuid
+  profile_id String             @db.Uuid
+  wins       Int                @default(0)
+  is_main    Boolean            @default(false)
   slot_index Int?
+  bg_key     String?
+  created_at DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+  profile    character_profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_characters_profile_fk")
+  user       app_users          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_characters_user_fk")
 
-  // 선택: 배경을 DB로 옮길 거면
-  bg_key String? // "A" | "B" | ...
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  user    app_users          @relation(fields: [user_id], references: [id])
-  profile character_profiles @relation(fields: [profile_id], references: [id])
-
-  battles_as_attacker battles[] @relation("battle_attacker")
-  battles_as_defender battles[] @relation("battle_defender")
-  battles_as_winner   battles[] @relation("battle_winner")
-
-  @@unique([user_id, profile_id])
-  @@index([user_id])
-  @@index([profile_id])
+  @@unique([user_id, profile_id], map: "user_characters_user_profile_uidx")
+  @@index([profile_id], map: "user_characters_profile_idx")
+  @@index([user_id], map: "user_characters_user_idx")
 }

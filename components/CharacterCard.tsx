@@ -19,15 +19,17 @@ export function CharacterCard({
   const [isFlipped, setIsFlipped] = useState(false);
 
   const handleClick = () => {
-    if (!aiImageUrl) return;
+    // ✅ aiImageUrl 없어도 뒤집기 허용
     setIsFlipped((prev) => !prev);
   };
 
   return (
     <div className="w-full flex justify-center">
-      <div
+      <button
+        type="button"
         className="relative w-[320px] h-[420px] [perspective:1200px]"
         onClick={handleClick}
+        aria-label={`${name} 카드 뒤집기`}
       >
         <div
           className={[
@@ -36,6 +38,7 @@ export function CharacterCard({
             isFlipped ? "[transform:rotateY(180deg)]" : "",
           ].join(" ")}
         >
+          {/* FRONT */}
           <div
             className={[
               "absolute inset-0 flex flex-col items-center justify-center p-4",
@@ -48,17 +51,20 @@ export function CharacterCard({
             <div className="relative w-full h-full max-h-[320px] rounded-2xl bg-slate-800/80 flex items-center justify-center overflow-hidden">
               <Image
                 src={spriteUrl}
-                alt={name}
+                alt={`${name} 캐릭터 이미지`}
                 width={260}
                 height={320}
                 className="object-contain drop-shadow-[0_0_18px_rgba(0,0,0,0.7)]"
+                unoptimized
               />
             </div>
+
             <p className="mt-2 text-xs text-slate-400">
-              클릭하면 AI 일러스트 카드로 뒤집어집니다.
+              클릭하면 뒷면(일러스트 카드)을 볼 수 있습니다.
             </p>
           </div>
 
+          {/* BACK */}
           <div
             className={[
               "absolute inset-0 flex flex-col items-center justify-center p-4",
@@ -73,23 +79,30 @@ export function CharacterCard({
               {aiImageUrl ? (
                 <Image
                   src={aiImageUrl}
-                  alt={`${name} AI illustration`}
+                  alt={`${name} AI 일러스트`}
                   width={260}
                   height={320}
                   className="object-contain"
+                  unoptimized
                 />
               ) : (
-                <span className="text-slate-400 text-sm">
-                  아직 AI 일러스트가 없습니다.
-                </span>
+                <div className="text-center px-4">
+                  <div className="text-sm text-slate-200 font-semibold">
+                    아직 AI 일러스트가 없습니다
+                  </div>
+                  <div className="mt-1 text-xs text-slate-400">
+                    (프리티어/비활성 상태일 수 있음)
+                  </div>
+                </div>
               )}
             </div>
+
             <p className="mt-2 text-xs text-slate-400">
-              다시 클릭하면 원본 캐릭터 카드로 돌아갑니다.
+              다시 클릭하면 원본 카드로 돌아갑니다.
             </p>
           </div>
         </div>
-      </div>
+      </button>
     </div>
   );
 }
