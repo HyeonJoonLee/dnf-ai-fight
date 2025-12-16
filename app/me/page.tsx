@@ -5,6 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import RegisterCharacterModal from "@/components/RegisterCharacterModal";
 import CharacterDetailModal from "@/components/CharacterDetailModal";
+import { CHARACTER_BACKGROUNDS, type CharacterBgKey } from "@/src/constants/characterBackgrounds";
+
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const LS_PREFIX = "dnfai:myCharacters:v1";
 
@@ -20,7 +25,6 @@ type MyCharacter = {
 };
 
 export default function MyPage() {
-    // 나중에 API로 내 캐릭터 목록 가져오면 이 state를 채우면 됨
     const [characters, setCharacters] = useState<MyCharacter[]>([]);
 
     const [open, setOpen] = useState(false);
@@ -149,6 +153,67 @@ export default function MyPage() {
         }
     }
 
+    function CharacterSlotCard({ char, onClick }: { char: MyCharacter; onClick: () => void }) {
+        const LS_BG_KEY = `dnfai:character-bg:${char.id}`;
+
+        const [bgKey, setBgKey] = useState<CharacterBgKey>("A");
+
+        useEffect(() => {
+            const saved = localStorage.getItem(LS_BG_KEY) as CharacterBgKey | null;
+            if (saved && CHARACTER_BACKGROUNDS.some((b) => b.key === saved)) setBgKey(saved);
+        }, [LS_BG_KEY]);
+
+        const bg = CHARACTER_BACKGROUNDS.find((b) => b.key === bgKey) ?? CHARACTER_BACKGROUNDS[0];
+        return (
+            <button
+                type="button"
+                onClick={onClick}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/30
+                 shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition hover:-translate-y-1"
+            >
+                {/* ✅ 상단 배경만 채우기 */}
+                <div className="relative h-48 w-full overflow-hidden rounded-t-2xl">
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundImage: `url(${bg.image})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: bg.position,
+                        }}
+                    />
+                    <div className="absolute inset-0 bg-slate-950/35" />
+
+                    {/* 캐릭터 */}
+                    <div className="relative z-10 flex h-full items-end justify-center pb-2">
+                        {char.imageUrl ? (
+                            <img
+                                src={char.imageUrl}
+                                alt={char.characterName}
+                                className="
+                                          h-[180px]
+                                          object-contain
+                                          drop-shadow-[0_14px_32px_rgba(0,0,0,0.75)]
+                                          transition-transform ease-in-out hover:scale-120
+                                        "
+                            />
+                        ) : (
+                            <div className="h-24 w-24 rounded-xl bg-slate-800" />
+                        )}
+                    </div>
+                </div>
+
+                {/* 이름/정보 */}
+                <div className="px-3 pb-3 pt-2">
+                    <div className="text-sm font-semibold truncate">{char.characterName}</div>
+                    <div className="mt-1 text-xs text-slate-300/90 truncate">
+                        {char.serverId} · Lv.{char.level ?? "?"} {char.jobName ?? ""}
+                    </div>
+                    <div className="mt-2 text-xs text-amber-300 font-semibold">Wins {char.wins ?? 0}</div>
+                </div>
+            </button>
+        );
+    }
+
     return (
         <main className="min-h-[calc(100vh-56px)] bg-slate-950 text-slate-100 px-6 py-10">
             <div className="mx-auto max-w-5xl">
@@ -170,70 +235,39 @@ export default function MyPage() {
                     {slots.map((slot) => {
                         if (slot.type === "char") {
                             return (
-                                <div
+                                <CharacterSlotCard
                                     key={slot.slotIndex}
+                                    char={slot.char}
                                     onClick={() => setSelected(slot.char)}
-                                    className="group relative rounded-2xl cursor-pointer
-                                            bg-gradient-to-b from-indigo-600/90 to-indigo-700/90
-                                            border border-white/10
-                                            shadow-[0_8px_24px_rgba(0,0,0,0.35)]
-                                            transition-all duration-200
-                                            hover:-translate-y-1
-                                            hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
-                                >
-                                    <div className="flex h-40 items-center justify-center">
-                                        {slot.char.imageUrl ? (
-                                            <img
-                                                src={slot.char.imageUrl}
-                                                alt={slot.char.characterName}
-                                                className="max-h-full
-                                                        scale-125
-                                                        object-contain
-                                                        drop-shadow-[0_6px_18px_rgba(0,0,0,0.6)]
-                                                        transition-transform
-                                                        duration-200
-                                                        group-hover:scale-135"
-                                            />
-                                        ) : (
-                                            <div className="h-24 w-24 rounded-xl bg-slate-900/40" />
-                                        )}
-                                    </div>
-                                    <div className="px-3 py-3 border-t border-white/10">
-                                        <div className="text-sm font-semibold truncate">
-                                            {slot.char.characterName}
-                                        </div>
-                                        <div className="text-xs text-slate-200/80 truncate">
-                                            {slot.char.serverId} · Lv.{slot.char.level ?? "?"}{" "}
-                                            {slot.char.jobName ?? ""}
-                                        </div>
-                                    </div>
-                                </div>
+                                />
                             );
                         }
 
                         if (slot.type === "empty") {
                             return (
-                                <button
-                                    key={slot.slotIndex}
-                                    type="button"
-                                    onClick={handleClickEmptySlot}
-                                    className="aspect-[3/4] rounded-3xl bg-indigo-500/50 border border-indigo-300/20 flex items-center justify-center text-4xl text-white/90 hover:bg-indigo-500/60 transition"
-                                //title="캐릭터 등록"
-                                >
-                                    +
-                                </button>
+                                <Card key={slot.slotIndex} className="flex aspect-[3/4] items-center justify-center">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        className="h-24 w-24 rounded-2xl text-4xl"
+                                        onClick={handleClickEmptySlot}
+                                    >
+                                        +
+                                    </Button>
+                                </Card>
                             );
                         }
 
-                        // locked
                         return (
-                            <div
+                            <Card
                                 key={slot.slotIndex}
-                                className="aspect-[3/4] rounded-3xl bg-indigo-500/30 border border-indigo-300/10 flex items-center justify-center text-4xl opacity-70"
-                            //title="유료 플랜에서 확장 가능"
+                                className="flex aspect-[3/4] items-center justify-center opacity-60"
                             >
-                                🔒
-                            </div>
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="text-3xl">🔒</div>
+                                    <div className="text-[11px] text-slate-400">슬롯 확장 예정</div>
+                                </div>
+                            </Card>
                         );
                     })}
                 </section>

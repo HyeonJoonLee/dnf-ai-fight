@@ -185,7 +185,7 @@ export default function RegisterCharacterModal({
                                     <input
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        placeholder="예: 던파짱센캐"
+                                        placeholder="예: 던파의 황제는 조강현이요"
                                         className="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-sm"
                                     />
                                 </div>

@@ -25,7 +25,7 @@ export default function LoginPage() {
           <p className="mt-2 text-xs text-slate-400">
             Google 또는 Kakao 계정으로 로그인하면
             <br />
-            캐릭터를 등록하고 전투 기록 & 일러스트 기능을 사용할 수 있어요.
+            나만의 캐릭터를 등록하고 다른 플레이어와 전투할 수 있습니다.
           </p>
         </div>
 
@@ -65,7 +65,7 @@ export default function LoginPage() {
             ← 메인 화면으로 돌아가기
           </Link>
           <span className="text-slate-600">
-            아직은 데모 버전이에요.
+            0.0.2v 데모
           </span>
         </div>
       </div>

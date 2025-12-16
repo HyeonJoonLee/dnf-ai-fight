@@ -111,11 +111,13 @@ export default function HomePage() {
     <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
       <div className="w-full max-w-3xl space-y-6">
         <h1 className="text-2xl font-bold">
-          던파 캐릭터 AI 전투 스타일 분석 데모
+          던파 아레나 캐릭터 전투 분석
         </h1>
         <p className="text-sm text-slate-300">
-          서버와 캐릭터명을 입력하면, 던파 오픈 API에서 이미지와 정보를 가져오고
-          Gemini가 이미지 기반으로 전투 스타일을 분석해준다.
+          서버와 캐릭터명을 입력하면, 캐릭터 룩에 기반하여 AI가 캐릭터의 전투 성향을 분석해줍니다.<br />
+          내 캐릭터를 등록하고 다른 캐릭터와 전투하여 승리를 쟁취하세요!
+          {/* 서버와 캐릭터명을 입력하면, 던파 오픈 API에서 이미지와 정보를 가져오고
+          Gemini가 이미지 기반으로 전투 스타일을 분석해준다. */}
         </p>
 
         <form
@@ -143,7 +145,7 @@ export default function HomePage() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="예: 던파짱센캐"
+                placeholder="예: 던파의 황제"
                 className="w-full rounded-md bg-slate-800 border border-slate-600 px-2 py-1 text-sm"
               />
             </div>
