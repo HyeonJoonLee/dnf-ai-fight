@@ -10,7 +10,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")   // 런타임(보통 pooler)
+  directUrl = env("DIRECT_URL")     // migrate용(무조건 direct)
 }
 
 model app_users {
@@ -21,38 +22,108 @@ model app_users {
   email            String?
   created_at       DateTime @default(now())
 
-  characters characters[]
+  user_characters user_characters[]
 
   @@unique([provider, provider_user_id])
 }
 
 model characters {
-  id              String   @id @db.Uuid
-  user_id         String   @db.Uuid
-  server_id       String
-  character_name  String
-  dnf_character_id String?
-  job_name        String?
-  level           Int?
-  is_main         Boolean? @default(false)
-  last_image_url  String?
+  id                String   @id @db.Uuid
+  user_id           String   @db.Uuid
+  server_id         String
+  character_name    String
+  dnf_character_id  String
+  job_name          String?
+  level             Int?
+  is_main           Boolean? @default(false)
+  last_image_url    String?
   last_ai_image_url String?
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
 
-  user app_users @relation(fields: [user_id], references: [id])
+  wins          Int? // 이미 있음
+  last_analysis String? // 이미 있음
 
-  @@unique([user_id, server_id, character_name])
+  // ✅ 전투용 캐시
+  battle_tags             String[]  @default([])
+  battle_stats            Json?
+  battle_stats_version    Int       @default(1)
+  battle_stats_updated_at DateTime?
 }
 
 model battles {
-  id                     String   @id @db.Uuid
-  challenger_user_id     String?  @db.Uuid
-  challenger_character_id String? @db.Uuid
-  target_character_id    String?  @db.Uuid
-  winner_side            String
-  score_challenger       Int?
-  score_target           Int?
-  log_json               Json?
-  created_at             DateTime @default(now())
+  id         String   @id @default(uuid()) @db.Uuid
+  created_at DateTime @default(now())
+
+  attacker_uc_id String  @db.Uuid
+  defender_uc_id String  @db.Uuid
+  winner_uc_id   String? @db.Uuid
+
+  score_a   Float
+  score_b   Float
+  delta     Float
+  winrate_a Float
+  winrate_b Float
+
+  highlights Json? // string[]
+
+  attacker user_characters  @relation("battle_attacker", fields: [attacker_uc_id], references: [id])
+  defender user_characters  @relation("battle_defender", fields: [defender_uc_id], references: [id])
+  winner   user_characters? @relation("battle_winner", fields: [winner_uc_id], references: [id])
+
+  @@index([attacker_uc_id, created_at])
+  @@index([defender_uc_id, created_at])
+}
+
+model character_profiles {
+  id                      String    @id @default(uuid()) @db.Uuid
+  server_id               String
+  dnf_character_id        String
+  character_name          String
+  job_name                String?
+  level                   Int?
+  last_image_url          String?
+  last_ai_image_url       String?
+  last_analysis           String?
+  battle_tags             String[]  @default([])
+  battle_stats            Json?
+  battle_stats_version    Int       @default(1)
+  battle_stats_updated_at DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user_characters user_characters[]
+
+  @@unique([server_id, dnf_character_id])
+  @@index([server_id, character_name])
+}
+
+model user_characters {
+  id         String @id @default(uuid()) @db.Uuid
+  user_id    String @db.Uuid
+  profile_id String @db.Uuid
+
+  wins    Int     @default(0)
+  is_main Boolean @default(false)
+
+  // 선택: UI 슬롯 고정이면
+  slot_index Int?
+
+  // 선택: 배경을 DB로 옮길 거면
+  bg_key String? // "A" | "B" | ...
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user    app_users          @relation(fields: [user_id], references: [id])
+  profile character_profiles @relation(fields: [profile_id], references: [id])
+
+  battles_as_attacker battles[] @relation("battle_attacker")
+  battles_as_defender battles[] @relation("battle_defender")
+  battles_as_winner   battles[] @relation("battle_winner")
+
+  @@unique([user_id, profile_id])
+  @@index([user_id])
+  @@index([profile_id])
 }
