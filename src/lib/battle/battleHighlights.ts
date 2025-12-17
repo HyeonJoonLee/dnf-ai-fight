@@ -1,3 +1,4 @@
+// src/lib/battle/battleHighlights.ts
 import { Fighter, BattleStats, STAT_WEIGHTS, TAG_BONUS, TagKey } from "./winrate";
 
 type Point = {
@@ -7,12 +8,13 @@ type Point = {
 };
 
 const STAT_LABEL: Record<keyof BattleStats, string> = {
+    hp:"체력",
     power: "공격력",
-    toughness: "내구도",
+    defense: "방어력",
     speed: "속도",
-    control: "제어",
-    burst: "폭발력",
-    sustain: "유지력",
+    physical: "물리",
+    magic: "마법",
+    range: "사거리",
 };
 
 function statContribution(a: BattleStats, b: BattleStats) {
@@ -63,11 +65,11 @@ function tagContribution(aTags: TagKey[], bTags: TagKey[]) {
         const b = TAG_BONUS[t] ?? {};
         return (
             Math.abs(b.power ?? 0) +
-            Math.abs(b.toughness ?? 0) +
+            Math.abs(b.defense ?? 0) +
             Math.abs(b.speed ?? 0) +
-            Math.abs(b.control ?? 0) +
-            Math.abs(b.burst ?? 0) +
-            Math.abs(b.sustain ?? 0) +
+            Math.abs(b.physical ?? 0) +
+            Math.abs(b.magic ?? 0) +
+            Math.abs(b.range ?? 0) +
             Math.abs(b.score ?? 0)
         );
     };

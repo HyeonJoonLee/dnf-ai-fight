@@ -1,7 +1,7 @@
 // components/RegisterCharacterModal.tsx
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { CharacterCard } from "@/components/CharacterCard";
 
 const SERVERS = [
@@ -18,19 +18,20 @@ const SERVERS = [
 type AnalyzeResult = {
     character: {
         serverId: string;
-        dnfCharacterId: string; // ✅ 변경
+        dnfCharacterId: string;
         name: string;
         level: number;
         jobName: string;
     };
     imageUrl: string;
     analysis: string;
-    source: "db" | "ai"; // ✅ 있으면 좋음(없으면 빼도 됨)
+    source: "db" | "ai";
 };
 
 export default function RegisterCharacterModal({
     onClose,
     onRegistered,
+    existingCharacters = [],
 }: {
     onClose: () => void;
     onRegistered: (char: {
@@ -43,6 +44,11 @@ export default function RegisterCharacterModal({
         analysis?: string;
         wins?: number;
     }) => void;
+    existingCharacters: Array<{
+        serverId: string;
+        characterName: string;
+        id: string;
+    }>;
 }) {
     const [serverId, setServerId] = useState("cain");
     const [name, setName] = useState("");
@@ -51,13 +57,31 @@ export default function RegisterCharacterModal({
     const [error, setError] = useState<string | null>(null);
     const [result, setResult] = useState<AnalyzeResult | null>(null);
 
+    // 입력 정규화
+    const trimmed = useMemo(() => name.trim(), [name]);
+
+    // ✅ 이미 등록 여부 체크 함수 (문자열 정규화 포함)
+    const isAlreadyRegistered = (sid: string, charName: string) => {
+        const list = existingCharacters ?? [];
+        const n = charName.trim().toLowerCase();
+        return list.some(
+            (c) => c.serverId === sid && c.characterName.trim().toLowerCase() === n
+        );
+    };
+
     async function handleAnalyze(e: FormEvent) {
         e.preventDefault();
         setError(null);
         setResult(null);
 
-        if (!name.trim()) {
+        if (!trimmed) {
             setError("캐릭터명을 입력해 주세요.");
+            return;
+        }
+
+        // ✅ 이미 등록된 캐릭터면 분석 자체를 막기
+        if (isAlreadyRegistered(serverId, trimmed)) {
+            setError("이미 등록된 캐릭터입니다.");
             return;
         }
 
@@ -66,35 +90,23 @@ export default function RegisterCharacterModal({
         try {
             const url =
                 `/api/df-analyze?serverId=${encodeURIComponent(serverId)}` +
-                `&characterName=${encodeURIComponent(name.trim())}`;
+                `&characterName=${encodeURIComponent(trimmed)}`;
 
             const res = await fetch(url, { method: "GET", cache: "no-store" });
-
             const raw = await res.text();
             const data = raw ? JSON.parse(raw) : null;
 
             if (!res.ok) {
-                setError(data?.error || data?.detail || `분석 실패 (${res.status})`);
+                if (data?.code === "AI_OVERLOADED" || res.status === 503) {
+                    setError("현재 AI가 혼잡하여 분석할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+                } else {
+                    setError(data?.error || data?.detail || `분석 실패 (${res.status})`);
+                }
                 return;
             }
 
+            // ✅ 여기서는 절대 onRegistered() 호출하지 않음 (중복 방지)
             setResult(data);
-
-            // ✅ save=true라면 이미 DB에 들어간 상태
-            // 바로 MyPage state에 추가 가능
-            if (data.userCharacterId) {
-                onRegistered({
-                    id: data.userCharacterId, // user_characters.id
-                    serverId: data.character.serverId,
-                    characterName: data.character.characterName,
-                    jobName: data.character.jobName,
-                    level: data.character.level,
-                    imageUrl: data.imageUrl,
-                    analysis: data.analysis,
-                    wins: 0,
-                });
-            }
-
         } catch {
             setError("요청 중 오류가 발생했습니다.");
         } finally {
@@ -104,6 +116,12 @@ export default function RegisterCharacterModal({
 
     async function handleRegister() {
         if (!result) return;
+
+        // ✅ 2차 방어: 분석 이후에 누가 다른 탭에서 등록했을 수도 있으니
+        if (isAlreadyRegistered(result.character.serverId, result.character.name)) {
+            setError("이미 등록된 캐릭터입니다.");
+            return;
+        }
 
         setLoading(true);
         setError(null);
@@ -126,8 +144,9 @@ export default function RegisterCharacterModal({
                 return;
             }
 
+            // ✅ 등록 성공시에만 state 반영
             onRegistered({
-                id: data.character.id, // ucId
+                id: data.character.id,
                 serverId: data.character.serverId,
                 characterName: data.character.characterName,
                 jobName: data.character.jobName,
@@ -137,27 +156,20 @@ export default function RegisterCharacterModal({
                 analysis: data.character.analysis,
             });
 
-        } catch (e) {
+            onClose();
+        } catch {
             setError("등록 중 오류가 발생했습니다.");
         } finally {
             setLoading(false);
         }
     }
 
-
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            {/* dim */}
-            <div
-                className="absolute inset-0 bg-black/70"
-                onClick={onClose}
-            />
+            <div className="absolute inset-0 bg-black/70" onClick={onClose} />
 
-            {/* panel */}
             <div className="relative w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 text-slate-100 shadow-xl">
-                {/* ✅ 헤더+본문을 한 flex-column 안에 */}
                 <div className="flex max-h-[85vh] flex-col">
-                    {/* ✅ 헤더: 고정 */}
                     <div className="shrink-0 flex items-center justify-between border-b border-slate-800 px-5 py-4">
                         <div>
                             <div className="text-sm font-semibold">캐릭터 등록</div>
@@ -175,9 +187,7 @@ export default function RegisterCharacterModal({
                         </button>
                     </div>
 
-                    {/* ✅ 본문: 여기만 스크롤 */}
                     <div className="min-h-0 flex-1 overflow-y-auto p-5">
-                        {/* 입력 폼 */}
                         <form
                             onSubmit={handleAnalyze}
                             className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-900/40 p-4"
@@ -222,7 +232,6 @@ export default function RegisterCharacterModal({
                             )}
                         </form>
 
-                        {/* 결과 */}
                         {result && (
                             <section className="mt-5 grid grid-cols-1 md:grid-cols-[220px,1fr] gap-4 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
                                 <CharacterCard

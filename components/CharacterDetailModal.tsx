@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CHARACTER_BACKGROUNDS, type CharacterBgKey }
-    from "../src/constants/characterBackgrounds";
+import { CHARACTER_BACKGROUNDS, type CharacterBgKey } from "../src/constants/characterBackgrounds";
+import { STAT_LABEL_KO } from "@/src/lib/battle/labels";
 
 type MyCharacter = {
     id: string;
@@ -13,6 +13,17 @@ type MyCharacter = {
     imageUrl?: string;
     analysis?: string;
     wins?: number;
+
+    battleTags?: string[];
+    battleStats?: {
+        hp: number;
+        power: number;
+        defense: number;
+        speed: number;
+        physical: number;
+        magic: number;
+        range: number;
+    };
 };
 
 export default function CharacterDetailModal({
@@ -44,7 +55,7 @@ export default function CharacterDetailModal({
     }, [loaded, LS_BG_KEY, bgKey]);
 
     const bg = CHARACTER_BACKGROUNDS.find(b => b.key === bgKey)!;
-    
+
     return (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
             {/* dim */}
@@ -97,8 +108,8 @@ export default function CharacterDetailModal({
                                                               h-4 w-4 rounded-sm transition
                                                               ${b.color}
                                                               ${active
-                                                        ? "ring-2 ring-white shadow-[0_0_8px_rgba(255,255,255,0.6)] scale-110"
-                                                        : "opacity-70 hover:opacity-100"}
+                                                            ? "ring-2 ring-white shadow-[0_0_8px_rgba(255,255,255,0.6)] scale-110"
+                                                            : "opacity-70 hover:opacity-100"}
                                                             `}
                                                     title={b.label}
                                                 />
@@ -158,6 +169,67 @@ export default function CharacterDetailModal({
                                             ? character.analysis
                                             : "아직 전투 성향 분석이 없다. '분석하기' 를 누르면 전투 성향 분석이 가능하다."}
                                     </div>
+                                </div>
+
+                                {/* 전투 태그 */}
+                                <div className="mt-4">
+                                    <div className="text-sm font-semibold text-emerald-300">전투 태그</div>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {(character.battleTags?.length
+                                            ? character.battleTags
+                                            : ["태그 없음"]
+                                        ).map((tag) => (
+                                            <span
+                                                key={tag}
+                                                className="text-xs rounded-full border border-slate-700 bg-slate-950/40 px-2 py-1"
+                                            >
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 전투 스탯 */}
+                                <div className="mt-4">
+                                    <div className="text-sm font-semibold text-emerald-300">전투 스탯</div>
+
+                                    {(() => {
+                                        const STAT_KEYS = ["hp", "power", "defense", "range", "speed", "physical", "magic"] as const;
+
+                                        const statWidth = (k: typeof STAT_KEYS[number], v: number) => {
+                                            if (k === "hp") {
+                                                // ✅ 160~200 -> 80~100
+                                                const w = 80 + ((v - 160) / 40) * 20;
+                                                return Math.max(0, Math.min(100, w));
+                                            }
+                                            // 0~100
+                                            return Math.max(0, Math.min(100, v));
+                                        };
+
+                                        return (
+                                            <div className="mt-2 space-y-2">
+                                                {STAT_KEYS.map((k) => {
+                                                    const v = character.battleStats?.[k];
+
+                                                    return (
+                                                        <div key={k} className="text-xs">
+                                                            <div className="flex justify-between text-slate-300">
+                                                                <span>{STAT_LABEL_KO[k] ?? k}</span>
+                                                                <span className="text-slate-100">{typeof v === "number" ? v : "-"}</span>
+                                                            </div>
+
+                                                            <div className="h-2 rounded bg-slate-800 overflow-hidden">
+                                                                <div
+                                                                    className="h-full bg-emerald-500"
+                                                                    style={{ width: `${typeof v === "number" ? statWidth(k, v) : 0}%` }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 {/* actions placeholder (확장 포인트) */}

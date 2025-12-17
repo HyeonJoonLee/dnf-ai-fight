@@ -44,7 +44,12 @@ export async function GET() {
         job_name,
         level,
         last_image_url,
-        last_analysis
+        last_analysis,
+
+        battle_tags,
+        battle_stats,
+        battle_stats_version,
+        battle_stats_updated_at
       )
     `
     )
@@ -68,6 +73,9 @@ export async function GET() {
       level: p?.level ?? undefined,
       imageUrl: p?.last_image_url ?? undefined,
       analysis: p?.last_analysis ?? undefined,
+
+      battleTags: p?.battle_tags ?? undefined,
+      battleStats: p?.battle_stats ?? undefined,
 
       wins: row.wins ?? 0,
       isMain: row.is_main ?? false,

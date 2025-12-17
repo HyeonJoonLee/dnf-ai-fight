@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-const LS_PREFIX = "dnfai:myCharacters:v1";
+const LS_PREFIX = "dnfai:myCharacters:v2";
 
 type MyCharacter = {
     id: string;
@@ -22,6 +22,16 @@ type MyCharacter = {
     imageUrl?: string;
     analysis?: string;   // 전투 성향 텍스트 (없으면 "아직 분석 안 됨")
     wins?: number;       // 승리 수 (기본 0)
+
+    battleTags?: string[]; // ✅ 추가
+    battleStats?: {
+        power: number;
+        defense: number;
+        speed: number;
+        physical: number;
+        magic: number;
+        range: number;
+    }
 };
 
 export default function MyPage() {
@@ -42,12 +52,14 @@ export default function MyPage() {
     const userKey = session?.user?.email ?? session?.user?.name ?? "guest";
     const LS_KEY = `${LS_PREFIX}:${userKey}`;
 
+    const [serverLoaded, setServerLoaded] = useState(false);
 
     useEffect(() => {
         // 로그인 전/세션 로딩 중엔 건드리지 않기
         if (status === "loading") return;
 
         setHydrated(false); // 유저 바뀌면 다시 로드 플래그 리셋
+        setServerLoaded(false);
         try {
             const raw = localStorage.getItem(LS_KEY);
             if (raw) {
@@ -68,13 +80,17 @@ export default function MyPage() {
     useEffect(() => {
         if (!hydrated) return;
         if (status === "loading") return;
+        if (status !== "authenticated") return;
+
+        // ✅ 서버에서 한 번이라도 받아온 다음에만 저장 (덮어쓰기 방지)
+        if (!serverLoaded) return;
 
         try {
             localStorage.setItem(LS_KEY, JSON.stringify(characters));
         } catch (e) {
             console.warn("Failed to save characters", e);
         }
-    }, [characters, hydrated, LS_KEY, status]);
+    }, [characters, hydrated, LS_KEY, status, serverLoaded]);
 
     // 슬롯 데이터 구성
     const slots = useMemo(() => {
@@ -124,11 +140,12 @@ export default function MyPage() {
                 const data = raw ? JSON.parse(raw) : null;
 
                 if (!res.ok) {
-                    console.error("GET /api/my/characters failed:", res.status, data, raw);
+                    console.error("GET /api/my/characters failed:", res.status, data);
                     return;
                 }
 
                 setCharacters(data?.characters ?? []);
+                setServerLoaded(true);
             } catch (e) {
                 console.error("Failed to load characters:", e);
             }
