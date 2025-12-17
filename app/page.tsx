@@ -7,13 +7,14 @@ import { CharacterCard } from "@/components/CharacterCard";
 type Result = {
   character: {
     serverId: string;
-    characterId: string;
+    dnfCharacterId: string; // ✅ 변경
     name: string;
     level: number;
     jobName: string;
   };
   imageUrl: string;
   analysis: string;
+  source: "db" | "ai"; // ✅ 추가(디버그용)
 };
 
 const SERVERS = [
@@ -48,15 +49,11 @@ export default function HomePage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/df-analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          serverId,
-          characterName: name.trim(),
-          save: false, // 메인은 분석만 (등록은 /me에서)
-        }),
-      });
+      const url =
+        `/api/df-analyze?serverId=${encodeURIComponent(serverId)}` +
+        `&characterName=${encodeURIComponent(name.trim())}`;
+
+      const res = await fetch(url, { method: "GET" });
 
       // ✅ 안전 파싱 (빈 바디 방어)
       const raw = await res.text();
@@ -67,6 +64,7 @@ export default function HomePage() {
         return;
       }
 
+      console.log("df-analyze result:", data);
       setResult(data);
 
       try {

@@ -1,15 +1,14 @@
-// app/api/my/characters/route.ts
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { ensureCharacterProfileForAnalyze } from "@/lib/df-analyze"; // 경로 맞춰줘
 
 type Body = {
   serverId: string;
   characterName: string;
 
-  // ✅ 이제 필수로 받자 (항상 들어가야 한다고 했으니)
-  dnfCharacterId: string;
-
+  // (구버전 호환용) 받아도 저장엔 안 씀
+  dnfCharacterId?: string;
   jobName?: string | null;
   level?: number | null;
   imageUrl?: string | null;
@@ -56,12 +55,12 @@ export async function GET() {
     return NextResponse.json({ error: error.message ?? "DB select failed" }, { status: 500 });
   }
 
-  // ✅ 프론트가 기존처럼 쓰기 쉬운 형태로 매핑 (id = ucId로 내려줌)
   const characters = (data ?? []).map((row: any) => {
     const p = row.profile;
     return {
-      id: row.id,                 // ✅ 이제 이 id는 user_characters.id (ucId)
-      profileId: row.profile_id,  // 필요하면 프론트에서 사용
+      id: row.id,                 // ucId
+      profileId: row.profile_id,
+
       serverId: p?.server_id,
       dnfCharacterId: p?.dnf_character_id,
       characterName: p?.character_name,
@@ -80,7 +79,6 @@ export async function GET() {
   return NextResponse.json({ ok: true, characters });
 }
 
-// ✅ 등록 (profile upsert -> user_characters upsert)
 export async function POST(req: Request) {
   const session = await auth();
   const appUserId = (session as any)?.appUserId as string | undefined;
@@ -98,41 +96,15 @@ export async function POST(req: Request) {
 
   const serverId = body.serverId?.trim();
   const characterName = body.characterName?.trim();
-  const dnfCharacterId = body.dnfCharacterId?.trim();
 
-  if (!serverId || !characterName || !dnfCharacterId) {
-    return NextResponse.json(
-      { error: "serverId, characterName, dnfCharacterId is required" },
-      { status: 400 }
-    );
+  if (!serverId || !characterName) {
+    return NextResponse.json({ error: "serverId, characterName is required" }, { status: 400 });
   }
 
-  // 1) character_profiles upsert (unique: server_id + dnf_character_id)
-  const { data: profile, error: profileErr } = await supabaseAdmin
-    .from("character_profiles")
-    .upsert(
-      {
-        server_id: serverId,
-        dnf_character_id: dnfCharacterId,
-        character_name: characterName,
-        job_name: body.jobName ?? null,
-        level: body.level ?? null,
-        last_image_url: body.imageUrl ?? null,
-        last_analysis: body.analysis ?? null,
-      },
-      { onConflict: "server_id,dnf_character_id" }
-    )
-    .select("id, server_id, dnf_character_id, character_name, job_name, level, last_image_url, last_analysis")
-    .single();
+  // ✅ 1) “단일 진입점” 파이프라인으로 profile 확정 (DB hit면 AI 절대 호출 X)
+  const { profile } = await ensureCharacterProfileForAnalyze(serverId, characterName);
 
-  if (profileErr || !profile) {
-    return NextResponse.json(
-      { error: profileErr?.message ?? "Profile upsert failed" },
-      { status: 500 }
-    );
-  }
-
-  // 2) user_characters upsert (unique: user_id + profile_id)
+  // ✅ 2) user_characters upsert (유저-캐릭터 관계만 책임)
   const { data: uc, error: ucErr } = await supabaseAdmin
     .from("user_characters")
     .upsert(
@@ -147,20 +119,15 @@ export async function POST(req: Request) {
     .single();
 
   if (ucErr || !uc) {
-    // 중복 등록이면 upsert가 그냥 기존 row를 돌려줄 텐데,
-    // 혹시 정책상 “이미 등록”을 띄우고 싶으면 여기서 별도 체크 필요.
-    return NextResponse.json(
-      { error: ucErr?.message ?? "User character upsert failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: ucErr?.message ?? "User character upsert failed" }, { status: 500 });
   }
 
-  // ✅ 프론트에서 바로 쓰는 DTO로 반환
   return NextResponse.json({
     ok: true,
     character: {
-      id: uc.id, // ✅ ucId
+      id: uc.id, // ucId
       profileId: uc.profile_id,
+
       serverId: profile.server_id,
       dnfCharacterId: profile.dnf_character_id,
       characterName: profile.character_name,
@@ -168,6 +135,7 @@ export async function POST(req: Request) {
       level: profile.level ?? undefined,
       imageUrl: profile.last_image_url ?? undefined,
       analysis: profile.last_analysis ?? undefined,
+
       wins: uc.wins ?? 0,
       isMain: uc.is_main ?? false,
       slotIndex: uc.slot_index ?? undefined,

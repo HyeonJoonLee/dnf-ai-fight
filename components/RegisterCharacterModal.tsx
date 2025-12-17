@@ -18,13 +18,14 @@ const SERVERS = [
 type AnalyzeResult = {
     character: {
         serverId: string;
-        characterId: string;
+        dnfCharacterId: string; // ✅ 변경
         name: string;
         level: number;
         jobName: string;
     };
     imageUrl: string;
     analysis: string;
+    source: "db" | "ai"; // ✅ 있으면 좋음(없으면 빼도 됨)
 };
 
 export default function RegisterCharacterModal({
@@ -63,20 +64,17 @@ export default function RegisterCharacterModal({
         setLoading(true);
 
         try {
-            const res = await fetch("/api/df-analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    serverId,
-                    characterName: name.trim(),
-                    save: true, // ✅ 여기!!
-                }),
-            });
+            const url =
+                `/api/df-analyze?serverId=${encodeURIComponent(serverId)}` +
+                `&characterName=${encodeURIComponent(name.trim())}`;
 
-            const data = await res.json();
+            const res = await fetch(url, { method: "GET", cache: "no-store" });
+
+            const raw = await res.text();
+            const data = raw ? JSON.parse(raw) : null;
 
             if (!res.ok) {
-                setError(data.error || "분석 실패");
+                setError(data?.error || data?.detail || `분석 실패 (${res.status})`);
                 return;
             }
 
@@ -117,30 +115,26 @@ export default function RegisterCharacterModal({
                 body: JSON.stringify({
                     serverId: result.character.serverId,
                     characterName: result.character.name,
-                    dnfCharacterId: result.character.characterId,
-                    jobName: result.character.jobName,
-                    level: result.character.level,
-                    imageUrl: result.imageUrl,
-                    analysis: result.analysis,
                 }),
             });
 
-            const data = await res.json();
+            const raw = await res.text();
+            const data = raw ? JSON.parse(raw) : null;
+
             if (!res.ok) {
-                setError(data.error || "등록 실패");
+                setError(data?.error || `등록 실패 (${res.status})`);
                 return;
             }
 
-            // DB에서 반환된 row를 MyPage state에 반영
             onRegistered({
-                id: data.character.id,                 // ucId
+                id: data.character.id, // ucId
                 serverId: data.character.serverId,
                 characterName: data.character.characterName,
                 jobName: data.character.jobName,
                 level: data.character.level,
                 imageUrl: data.character.imageUrl,
                 wins: data.character.wins ?? 0,
-                analysis: data.character.analysis ?? result.analysis ?? undefined,
+                analysis: data.character.analysis,
             });
 
         } catch (e) {

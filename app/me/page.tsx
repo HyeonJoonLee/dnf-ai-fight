@@ -120,12 +120,15 @@ export default function MyPage() {
         (async () => {
             try {
                 const res = await fetch("/api/my/characters", { cache: "no-store" });
-                const data = await res.json();
+                const raw = await res.text();
+                const data = raw ? JSON.parse(raw) : null;
+
                 if (!res.ok) {
-                    console.error("GET /api/my/characters failed:", data);
+                    console.error("GET /api/my/characters failed:", res.status, data, raw);
                     return;
                 }
-                setCharacters(data.characters ?? []);
+
+                setCharacters(data?.characters ?? []);
             } catch (e) {
                 console.error("Failed to load characters:", e);
             }
