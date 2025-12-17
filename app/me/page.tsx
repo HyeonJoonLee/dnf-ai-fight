@@ -25,6 +25,7 @@ type MyCharacter = {
 
     battleTags?: string[]; // ✅ 추가
     battleStats?: {
+        hp: number;
         power: number;
         defense: number;
         speed: number;
@@ -298,6 +299,11 @@ export default function MyPage() {
                 <RegisterCharacterModal
                     onClose={() => setOpen(false)}
                     onRegistered={handleRegistered}
+                    existingCharacters={characters.map(c => ({
+                        id: c.id,
+                        serverId: c.serverId,
+                        characterName: c.characterName,
+                    }))}
                 />
             )}
 
