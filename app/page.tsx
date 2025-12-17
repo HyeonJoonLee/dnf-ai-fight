@@ -7,13 +7,14 @@ import { CharacterCard } from "@/components/CharacterCard";
 type Result = {
   character: {
     serverId: string;
-    characterId: string;
+    dnfCharacterId: string; // ✅ 변경
     name: string;
     level: number;
     jobName: string;
   };
   imageUrl: string;
   analysis: string;
+  source: "db" | "ai"; // ✅ 추가(디버그용)
 };
 
 const SERVERS = [
@@ -48,19 +49,22 @@ export default function HomePage() {
 
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/df-analyze?serverId=${serverId}&characterName=${encodeURIComponent(
-          name.trim()
-        )}`
-      );
+      const url =
+        `/api/df-analyze?serverId=${encodeURIComponent(serverId)}` +
+        `&characterName=${encodeURIComponent(name.trim())}`;
 
-      const data = await res.json();
+      const res = await fetch(url, { method: "GET" });
+
+      // ✅ 안전 파싱 (빈 바디 방어)
+      const raw = await res.text();
+      const data = raw ? JSON.parse(raw) : null;
+
       if (!res.ok) {
-        setError(data.error || "요청 실패");
+        setError(data?.error || "요청 실패");
         return;
       }
 
-      // 텍스트 분석 + 기본 이미지 먼저 화면에 표시
+      console.log("df-analyze result:", data);
       setResult(data);
 
       try {
@@ -78,10 +82,10 @@ export default function HomePage() {
         try {
           illData = await illRes.json();
         } catch {
-          illData = null;
+          return;
         }
 
-        console.log("df-illustration 응답:", illRes.status, illData);
+        // console.log("df-illustration 응답:", illRes.status, illData);
         // const illData = await illRes.json();
 
         if (illRes.ok && illData.imageUrl) {
@@ -90,10 +94,13 @@ export default function HomePage() {
             console.warn("AI 일러스트 대신 원본 이미지로 fallback되었습니다.");
             // 필요하면 화면에도 조그맣게 안내 문구 추가 가능
           }
-        } else {
-          console.error("일러스트 생성 실패:", illData);
-          // 여기서 에러 메시지를 따로 띄우고 싶으면 setError 추가로 써도 됨
-        }
+        } //else {
+        //   // ✅ 지금 단계에선 '정상적으로 없음' 취급 → 콘솔 에러 금지
+        //   // (원하면 개발 중에만 debug 로그)
+        //   if (process.env.NODE_ENV === "development") {
+        //     console.log("df-illustration skipped:", illRes.status, illData);
+        //   }
+        // }
       } catch (err) {
         console.error("일러스트 생성 중 오류:", err);
         // 일러스트만 실패해도 텍스트 분석은 이미 표시되어 있으므로 치명적이진 않음

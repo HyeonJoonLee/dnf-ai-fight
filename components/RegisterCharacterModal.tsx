@@ -18,13 +18,14 @@ const SERVERS = [
 type AnalyzeResult = {
     character: {
         serverId: string;
-        characterId: string;
+        dnfCharacterId: string; // ✅ 변경
         name: string;
         level: number;
         jobName: string;
     };
     imageUrl: string;
     analysis: string;
+    source: "db" | "ai"; // ✅ 있으면 좋음(없으면 빼도 됨)
 };
 
 export default function RegisterCharacterModal({
@@ -61,19 +62,40 @@ export default function RegisterCharacterModal({
         }
 
         setLoading(true);
+
         try {
-            const res = await fetch(
-                `/api/df-analyze?serverId=${serverId}&characterName=${encodeURIComponent(
-                    name.trim()
-                )}`
-            );
-            const data = await res.json();
+            const url =
+                `/api/df-analyze?serverId=${encodeURIComponent(serverId)}` +
+                `&characterName=${encodeURIComponent(name.trim())}`;
+
+            const res = await fetch(url, { method: "GET", cache: "no-store" });
+
+            const raw = await res.text();
+            const data = raw ? JSON.parse(raw) : null;
+
             if (!res.ok) {
-                setError(data.error || "분석 실패");
+                setError(data?.error || data?.detail || `분석 실패 (${res.status})`);
                 return;
             }
+
             setResult(data);
-        } catch (err) {
+
+            // ✅ save=true라면 이미 DB에 들어간 상태
+            // 바로 MyPage state에 추가 가능
+            if (data.userCharacterId) {
+                onRegistered({
+                    id: data.userCharacterId, // user_characters.id
+                    serverId: data.character.serverId,
+                    characterName: data.character.characterName,
+                    jobName: data.character.jobName,
+                    level: data.character.level,
+                    imageUrl: data.imageUrl,
+                    analysis: data.analysis,
+                    wins: 0,
+                });
+            }
+
+        } catch {
             setError("요청 중 오류가 발생했습니다.");
         } finally {
             setLoading(false);
@@ -93,30 +115,26 @@ export default function RegisterCharacterModal({
                 body: JSON.stringify({
                     serverId: result.character.serverId,
                     characterName: result.character.name,
-                    dnfCharacterId: result.character.characterId,
-                    jobName: result.character.jobName,
-                    level: result.character.level,
-                    imageUrl: result.imageUrl,
-                    analysis: result.analysis,
                 }),
             });
 
-            const data = await res.json();
+            const raw = await res.text();
+            const data = raw ? JSON.parse(raw) : null;
+
             if (!res.ok) {
-                setError(data.error || "등록 실패");
+                setError(data?.error || `등록 실패 (${res.status})`);
                 return;
             }
 
-            // DB에서 반환된 row를 MyPage state에 반영
             onRegistered({
-                id: data.character.id,
-                serverId: data.character.server_id,
-                characterName: data.character.character_name,
-                jobName: data.character.job_name ?? undefined,
-                level: data.character.level ?? undefined,
-                imageUrl: data.character.last_image_url ?? undefined,
+                id: data.character.id, // ucId
+                serverId: data.character.serverId,
+                characterName: data.character.characterName,
+                jobName: data.character.jobName,
+                level: data.character.level,
+                imageUrl: data.character.imageUrl,
                 wins: data.character.wins ?? 0,
-                analysis: data.character.last_analysis ?? result.analysis ?? undefined,
+                analysis: data.character.analysis,
             });
 
         } catch (e) {
