@@ -24,7 +24,16 @@ type MyCharacter = {
         magic: number;
         range: number;
     };
+    fatigue?: number;          // 현재 피로도
+    fatigueCapBase?: number;   // 자연회복 상한(기본 30)
+    lockedUntil?: string;      // 잠금이면 ISO string(선택)
 };
+
+function fatigueColorClass(fatigue: number) {
+    if (fatigue <= 9) return "text-red-400";
+    if (fatigue <= 19) return "text-orange-300";
+    return "text-emerald-300";
+}
 
 export default function CharacterDetailModal({
     character,
@@ -40,6 +49,9 @@ export default function CharacterDetailModal({
 
     const [bgKey, setBgKey] = useState<CharacterBgKey>("A");
     const [loaded, setLoaded] = useState(false);
+
+    const f = character.fatigue ?? 30;
+    const cap = character.fatigueCapBase ?? 30;
 
     useEffect(() => {
         const saved = localStorage.getItem(LS_BG_KEY) as CharacterBgKey | null;
@@ -116,6 +128,16 @@ export default function CharacterDetailModal({
                                             );
                                         })}
                                     </div>
+
+                                    {/* ✅ 피로도 표시: 네모 버튼 아래 */}
+                                    <div className="absolute right-3 top-8 z-10 mt-2 rounded-lg border border-white/10 bg-slate-950/70 px-2 py-1 text-[11px]">
+                                        <span className="text-slate-300">피로도</span>{" "}
+                                        <span className={`font-semibold ${fatigueColorClass(f)}`}>
+                                            {f}
+                                        </span>
+                                        <span className="text-slate-500">/{cap}</span>
+                                    </div>
+
                                     {character.imageUrl ? (
                                         <img
                                             src={character.imageUrl}
@@ -198,8 +220,7 @@ export default function CharacterDetailModal({
 
                                         const statWidth = (k: typeof STAT_KEYS[number], v: number) => {
                                             if (k === "hp") {
-                                                // ✅ 160~200 -> 80~100
-                                                const w = 80 + ((v - 160) / 40) * 20;
+                                                const w = (v / 200) * 100;
                                                 return Math.max(0, Math.min(100, w));
                                             }
                                             // 0~100

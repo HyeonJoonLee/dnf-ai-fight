@@ -9,51 +9,77 @@ datasource db {
 }
 
 model app_users {
-  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   provider         String
   provider_user_id String
   nickname         String?
   email            String?
-  created_at       DateTime          @default(now()) @db.Timestamptz(6)
-  battles          battles[]
-  characters       characters[]
-  user_characters  user_characters[]
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  // 계정 공용 재화
+  gold       Int @default(0)
+
+  user_characters user_characters[]
+  battles         battles[]
+
+  inventory user_inventory[]
 
   @@unique([provider, provider_user_id])
 }
 
+enum BattleMode {
+  PVE
+  PVP
+}
+
+enum BattleTargetKind {
+  USER
+  MONSTER
+}
+
 model battles {
-  id                                                     String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  challenger_user_id                                     String     @db.Uuid
-  challenger_character_id                                String     @db.Uuid
-  target_character_id                                    String     @db.Uuid
-  winner_side                                            String
-  score_challenger                                       Decimal?   @db.Decimal
-  score_target                                           Decimal?   @db.Decimal
-  log_json                                               Json?
-  created_at                                             DateTime   @default(now()) @db.Timestamptz(6)
-  attacker_character_id                                  String?    @db.Uuid
-  defender_character_id                                  String?    @db.Uuid
-  winner_character_id                                    String?    @db.Uuid
-  winrate_a                                              Float?
-  winrate_b                                              Float?
-  score_a                                                Float?
-  score_b                                                Float?
-  delta                                                  Float?
-  highlights                                             Json?
-  characters_battles_challenger_character_idTocharacters characters @relation("battles_challenger_character_idTocharacters", fields: [challenger_character_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  app_users                                              app_users  @relation(fields: [challenger_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  characters_battles_target_character_idTocharacters     characters @relation("battles_target_character_idTocharacters", fields: [target_character_id], references: [id], onUpdate: NoAction)
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mode        BattleMode
+  target_kind BattleTargetKind
+
+  // 요청자(유저)
+  challenger_user_id String @db.Uuid
+  challenger_uc_id   String @db.Uuid
+
+  // 타겟(PVP면 USER, PVE면 MONSTER)
+  target_uc_id       String? @db.Uuid
+  target_monster_key String?
+  target_monster_lvl Int?
+
+  // 결과
+  winner_uc_id String? @db.Uuid
+  winrate_a    Float?
+  winrate_b    Float?
+  score_a      Float?
+  score_b      Float?
+  delta_rating Int? // PVP에서 레이팅 변화량(+/-)
+
+  highlights Json?
+  log_json   Json?
+
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  // relations
+  challenger_user app_users @relation(fields: [challenger_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  challenger_uc user_characters  @relation("battles_challenger_uc", fields: [challenger_uc_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  target_uc     user_characters? @relation("battles_target_uc", fields: [target_uc_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  winner_uc     user_characters? @relation("battles_winner_uc", fields: [winner_uc_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([challenger_user_id, created_at(sort: Desc)], map: "battles_challenger_user_idx")
-  @@index([target_character_id, created_at(sort: Desc)], map: "battles_target_character_idx")
-  @@index([attacker_character_id, created_at], map: "idx_battles_attacker_created")
-  @@index([defender_character_id, created_at], map: "idx_battles_defender_created")
-  @@index([winner_character_id, created_at], map: "idx_battles_winner_created")
+  @@index([challenger_uc_id, created_at(sort: Desc)], map: "battles_challenger_uc_idx")
+  @@index([target_uc_id, created_at(sort: Desc)], map: "battles_target_uc_idx")
+  @@index([winner_uc_id, created_at(sort: Desc)], map: "battles_winner_uc_idx")
+  @@index([mode, created_at(sort: Desc)], map: "battles_mode_created_idx")
 }
 
 model character_profiles {
-  id                      String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   server_id               String
   dnf_character_id        String
   character_name          String
@@ -62,32 +88,132 @@ model character_profiles {
   last_image_url          String?
   last_ai_image_url       String?
   last_analysis           String?
-  battle_tags             String[]          @default([])
+  battle_tags             String[]  @default([])
   battle_stats            Json?
-  battle_stats_version    Int               @default(1)
-  battle_stats_updated_at DateTime?         @db.Timestamptz(6)
-  created_at              DateTime          @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime          @default(now()) @updatedAt @db.Timestamptz(6)
-  user_characters         user_characters[]
+  battle_stats_version    Int       @default(1)
+  battle_stats_updated_at DateTime? @db.Timestamptz(6)
+  created_at              DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  user_characters user_characters[]
 
   @@unique([server_id, dnf_character_id], map: "character_profiles_server_dnf_uidx")
   @@index([server_id, character_name], map: "character_profiles_server_name_idx")
 }
 
 model user_characters {
-  id         String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id    String             @db.Uuid
-  profile_id String             @db.Uuid
-  wins       Int                @default(0)
-  is_main    Boolean            @default(false)
+  id         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String @db.Uuid
+  profile_id String @db.Uuid
+
+  // 슬롯/표시
+  is_main    Boolean @default(false)
   slot_index Int?
   bg_key     String?
-  created_at DateTime           @default(now()) @db.Timestamptz(6)
-  updated_at DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
-  profile    character_profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_characters_profile_fk")
-  user       app_users          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_characters_user_fk")
 
-  @@unique([user_id, profile_id], map: "user_characters_user_profile_uidx")
-  @@index([profile_id], map: "user_characters_profile_idx")
-  @@index([user_id], map: "user_characters_user_idx")
+  // --- PVE 성장 ---
+  pve_level Int @default(1)
+  pve_xp    Int @default(0)
+
+  // --- 피로도(캐릭터 단위, PVP 1회당 -1, 자연회복은 cap_base까지만) ---
+  fatigue            Int      @default(30) // 오버캡 가능(물약)
+  fatigue_cap_base   Int      @default(30) // 자연회복 상한(기본 30)
+  fatigue_updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  // --- 캐릭터 잠금(죽으면 10분) ---
+  locked_until DateTime? @db.Timestamptz(6)
+
+  // --- PVP 아레나 (레벨업 X, 전적/연승/레이팅) ---
+  arena_rating         Int @default(1200)
+  arena_wins           Int @default(0)
+  arena_losses         Int @default(0)
+  arena_streak_current Int @default(0)
+  arena_streak_best    Int @default(0)
+
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  profile character_profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  user    app_users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  battles_as_challenger battles[] @relation("battles_challenger_uc")
+  battles_as_target     battles[] @relation("battles_target_uc")
+  battles_as_winner     battles[] @relation("battles_winner_uc")
+
+  @@unique([user_id, profile_id])
+  @@index([user_id, slot_index])
+  @@index([user_id])
+  @@index([profile_id])
 }
+
+enum ItemType {
+  CONSUMABLE
+  MATERIAL
+  EQUIPMENT
+  ETC
+}
+
+model items {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key        String   @unique
+  name       String
+  type       ItemType
+  stackable  Boolean  @default(true)
+  meta_json  Json?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  inventories   user_inventory[]
+  monster_drops monster_drops[]
+}
+
+model user_inventory {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  item_id    String   @db.Uuid
+  qty        Int      @default(0)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  user app_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  item items     @relation(fields: [item_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, item_id])
+  @@index([user_id])
+  @@index([item_id])
+}
+
+model monsters {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key        String   @unique
+  name       String
+  level      Int
+  exp_reward Int
+  gold_min   Int      @default(0)
+  gold_max   Int      @default(0)
+  meta_json  Json?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  drops monster_drops[]
+}
+
+model monster_drops {
+  id         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  monster_id String @db.Uuid
+  item_id    String @db.Uuid
+
+  drop_rate Float // 0~1
+  qty_min   Int   @default(1)
+  qty_max   Int   @default(1)
+
+  monster monsters @relation(fields: [monster_id], references: [id], onDelete: Cascade)
+  item    items    @relation(fields: [item_id], references: [id], onDelete: Cascade)
+
+  @@index([monster_id])
+  @@index([item_id])
+}
+
+// insert into items (key, name, type, stackable, meta_json)
+// values
+// ('revive_coin', '부활 코인', 'CONSUMABLE', true, '{"effect":"UNLOCK_CHARACTER"}'),
+// ('fatigue_potion_10', '피로도 물약(10)', 'CONSUMABLE', true, '{"effect":"ADD_FATIGUE","amount":10}'),
+// ('fatigue_potion_30', '피로도 물약(30)', 'CONSUMABLE', true, '{"effect":"ADD_FATIGUE","amount":30}')
+// on conflict (key) do nothing;

@@ -32,7 +32,10 @@ type MyCharacter = {
         physical: number;
         magic: number;
         range: number;
-    }
+    };
+    fatigue?: number;          // 현재 피로도
+    fatigueCapBase?: number;   // 자연회복 상한(기본 30)
+    lockedUntil?: string;      // 잠금이면 ISO string(선택)
 };
 
 export default function MyPage() {
@@ -174,10 +177,19 @@ export default function MyPage() {
         }
     }
 
+    function fatigueColorClass(fatigue: number) {
+        if (fatigue <= 9) return "text-red-400";
+        if (fatigue <= 19) return "text-orange-300";
+        return "text-emerald-300";
+    }
+
     function CharacterSlotCard({ char, onClick }: { char: MyCharacter; onClick: () => void }) {
         const LS_BG_KEY = `dnfai:character-bg:${char.id}`;
 
         const [bgKey, setBgKey] = useState<CharacterBgKey>("A");
+
+        const f = char.fatigue ?? 30;
+        const cap = char.fatigueCapBase ?? 30;
 
         useEffect(() => {
             const saved = localStorage.getItem(LS_BG_KEY) as CharacterBgKey | null;
@@ -203,6 +215,15 @@ export default function MyPage() {
                         }}
                     />
                     <div className="absolute inset-0 bg-slate-950/35" />
+
+                    {/* ✅ 피로도 배지 (우상단) */}
+                    <div className="absolute right-2 top-2 z-20 rounded-lg border border-white/10 bg-slate-950/70 px-2 py-1 text-[11px]">
+                        <span className="text-slate-300">피로도</span>{" "}
+                        <span className={`font-semibold ${fatigueColorClass(f)}`}>
+                            {f}
+                        </span>
+                        <span className="text-slate-500">/{cap}</span>
+                    </div>
 
                     {/* 캐릭터 */}
                     <div className="relative z-10 flex h-full items-end justify-center pb-2">
