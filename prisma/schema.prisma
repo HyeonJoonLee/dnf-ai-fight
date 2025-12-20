@@ -17,7 +17,7 @@ model app_users {
   created_at       DateTime @default(now()) @db.Timestamptz(6)
 
   // 계정 공용 재화
-  gold       Int @default(0)
+  gold Int @default(0)
 
   user_characters user_characters[]
   battles         battles[]
@@ -79,21 +79,22 @@ model battles {
 }
 
 model character_profiles {
-  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  server_id               String
-  dnf_character_id        String
-  character_name          String
-  job_name                String?
-  level                   Int?
-  last_image_url          String?
-  last_ai_image_url       String?
-  last_analysis           String?
-  battle_tags             String[]  @default([])
-  battle_stats            Json?
-  battle_stats_version    Int       @default(1)
-  battle_stats_updated_at DateTime? @db.Timestamptz(6)
-  created_at              DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  server_id         String
+  dnf_character_id  String
+  character_name    String
+  job_name          String?
+  dnf_level         Int?
+  last_image_url    String?
+  last_ai_image_url String?
+  last_analysis     String?
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  dnf_battle_tags             String[]  @default([])
+  dnf_battle_stats            Json?
+  dnf_battle_stats_version    Int       @default(1)
+  dnf_battle_stats_updated_at DateTime? @db.Timestamptz(6)
 
   user_characters user_characters[]
 
@@ -107,13 +108,21 @@ model user_characters {
   profile_id String @db.Uuid
 
   // 슬롯/표시
+  wins        Int     @default(0)
   is_main    Boolean @default(false)
-  slot_index Int?
+  slot_index Int
   bg_key     String?
 
-  // --- PVE 성장 ---
-  pve_level Int @default(1)
-  pve_xp    Int @default(0)
+  // --- 성장 --- 이는 PVP에서도 어느정도 영향이 가야함
+  level       Int    @default(1)
+  level_xp    BigInt @default(0) //캐릭터 경험치 1~2,147,483,647까지 1레벨부터 100레벨까지 가능하게 수치는 조정
+  stat_points Int    @default(0) //캐릭터 스탯을 조정할 수 있는 xp(이걸로 체력, 공격력등을 올릴 수 있음)
+
+  // 유저 캐릭터 고유의 전투 성향, 스텟(처음 character_profiles의 정보를 가져오지만 등록된 유저에 따라서 스텟과 성향은 재설정할 수 있음)
+  user_battle_tags             String[]  @default([])
+  user_battle_stats            Json?
+  user_battle_stats_version    Int       @default(1)
+  user_battle_stats_updated_at DateTime? @db.Timestamptz(6)
 
   // --- 피로도(캐릭터 단위, PVP 1회당 -1, 자연회복은 cap_base까지만) ---
   fatigue            Int      @default(30) // 오버캡 가능(물약)
@@ -124,6 +133,7 @@ model user_characters {
   locked_until DateTime? @db.Timestamptz(6)
 
   // --- PVP 아레나 (레벨업 X, 전적/연승/레이팅) ---
+  arena_bucket         Int @default(1)
   arena_rating         Int @default(1200)
   arena_wins           Int @default(0)
   arena_losses         Int @default(0)
@@ -136,14 +146,17 @@ model user_characters {
   profile character_profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
   user    app_users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  battles_as_challenger battles[] @relation("battles_challenger_uc")
-  battles_as_target     battles[] @relation("battles_target_uc")
-  battles_as_winner     battles[] @relation("battles_winner_uc")
+  battles_as_challenger battles[]               @relation("battles_challenger_uc")
+  battles_as_target     battles[]               @relation("battles_target_uc")
+  battles_as_winner     battles[]               @relation("battles_winner_uc")
+  equipment             user_equipment[]
+  allocations           user_stat_allocations[]
 
   @@unique([user_id, profile_id])
-  @@index([user_id, slot_index])
+  @@unique([user_id, slot_index])
   @@index([user_id])
   @@index([profile_id])
+  @@index([arena_bucket, arena_rating])
 }
 
 enum ItemType {
@@ -173,8 +186,9 @@ model user_inventory {
   qty        Int      @default(0)
   updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
-  user app_users @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  item items     @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  user        app_users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  item        items            @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  equipped_in user_equipment[]
 
   @@unique([user_id, item_id])
   @@index([user_id])
@@ -209,6 +223,61 @@ model monster_drops {
 
   @@index([monster_id])
   @@index([item_id])
+}
+
+enum EquipSlot {
+  WEAPON
+  TOP
+  SHOULDER
+  BOTTOM
+  BELT
+  SHOES
+  NECKLACE
+  BRACELET
+  RING
+  SUPPORT
+  MAGIC_STONE
+  EARRING
+}
+
+model user_equipment {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_character_id String    @db.Uuid
+  slot              EquipSlot
+  user_inventory_id String    @db.Uuid
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  uc  user_characters @relation(fields: [user_character_id], references: [id], onDelete: Cascade)
+  inv user_inventory  @relation(fields: [user_inventory_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_character_id, slot]) // ✅ 슬롯당 1개
+  @@unique([user_character_id, user_inventory_id])
+  @@index([user_character_id])
+  @@index([user_inventory_id])
+}
+
+enum StatKey {
+  HP
+  POWER
+  DEFENSE
+  SPEED
+  PHYSICAL
+  MAGIC
+  RANGE
+}
+
+model user_stat_allocations {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_character_id String   @db.Uuid
+  stat              StatKey
+  points            Int      @default(0)
+  updated_at        DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  uc user_characters @relation(fields: [user_character_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_character_id, stat]) // 캐릭터당 각 스탯 1행
+  @@index([user_character_id])
 }
 
 // insert into items (key, name, type, stackable, meta_json)

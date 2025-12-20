@@ -8,7 +8,7 @@ export type DfAnalyzeResponse = {
         serverId: string;
         dnfCharacterId: string;
         name: string;
-        level: number;
+        dnflevel: number;
         jobName: string;
     };
     imageUrl: string;
@@ -80,8 +80,8 @@ export async function ensureCharacterProfileForAnalyze(serverId: string, charact
     const existing = await findCharacterProfile(dnf.serverId, dnf.dnfCharacterId);
 
     const hasAnalysis = !!existing?.last_analysis;
-    const hasStats = existing?.battle_stats != null;
-    const hasTags = Array.isArray(existing?.battle_tags);
+    const hasStats = existing?.dnf_battle_stats != null;
+    const hasTags = Array.isArray(existing?.dnf_battle_tags);
 
     if (hasAnalysis && hasStats && hasTags) return { profile: existing, source: "db" };
 
@@ -105,14 +105,14 @@ export async function ensureCharacterProfileForAnalyze(serverId: string, charact
         serverId: dnf.serverId,
         dnfCharacterId: dnf.dnfCharacterId,
         name: dnf.name,
-        level: dnf.level,
+        dnflevel: dnf.level,
         jobName: dnf.jobName,
         imageUrl: dnf.imageUrl,
 
         analysis,
-        battleTags,
-        battleStats,
-        battleStatsVersion: BATTLE_STATS_VERSION,
+        dnfbattleTags:battleTags,
+        dnfbattleStats:battleStats,
+        dnfbattleStatsVersion: BATTLE_STATS_VERSION,
     });
 
     return { profile: saved, source: "ai" };
@@ -127,7 +127,7 @@ export async function getOrCreateDfAnalysis(serverId: string, characterName: str
             serverId: profile.server_id,
             dnfCharacterId: profile.dnf_character_id,
             name: profile.character_name,
-            level: profile.level ?? 0,
+            dnflevel: profile.dnf_level ?? 0,
             jobName: profile.job_name ?? "",
         },
         imageUrl: profile.last_image_url ?? "",

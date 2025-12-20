@@ -8,7 +8,6 @@ import CharacterDetailModal from "@/components/CharacterDetailModal";
 import { CHARACTER_BACKGROUNDS, type CharacterBgKey } from "@/src/constants/characterBackgrounds";
 
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 const LS_PREFIX = "dnfai:myCharacters:v2";
