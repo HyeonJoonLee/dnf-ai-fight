@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import DungeonItemModal from "@/components/DungeonItemModal";
+import { useRouter } from "next/navigation";
 
 type DungeonType = "PVE" | "PVP";
 
@@ -236,6 +237,7 @@ function offsetFromCenter(index: number, center: number, len: number) {
 }
 
 export default function BattlePage() {
+    const router = useRouter();
     const items = DUNGEONS;
     const len = items.length;
 
@@ -534,6 +536,7 @@ export default function BattlePage() {
                     <div className="mt-6 flex items-center justify-end gap-3">
                         <button
                             type="button"
+                            onClick={() => router.push(`/battle/enter?dungeonId=${active.id}`)}
                             className="rounded-md bg-amber-400 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-300"
                         >
                             입장하기

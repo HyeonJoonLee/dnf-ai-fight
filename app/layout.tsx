@@ -1,8 +1,10 @@
+//app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Providers from "@/components/Providers";
+import { ThemeProvider } from "@/components/Theme/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,22 +18,18 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "DNF AI Arena",
-  description: "던전앤파이터 캐릭터 기반 AI 전투 & 일러스트 서비스",
+  description: "던전앤파이터 캐릭터 기반 RPG 아레나",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>
-        <Header />
-        {children}
+          <ThemeProvider>
+            <Header />
+            {children}
+          </ThemeProvider>
         </Providers>
       </body>
     </html>

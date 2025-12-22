@@ -190,10 +190,10 @@ export async function GET() {
       slotIndex: row.slot_index,
       bgKey: row.bg_key ?? undefined,
 
-      fatigue: row.fatigue ?? 30,
-      fatigueCapBase: row.fatigue_cap_base ?? 30,
+      fatigue: row.fatigue,
+      fatigueCapBase: row.fatigue_cap_base,
       fatigueUpdatedAt: row.fatigue_updated_at ?? null,
-      lockedUntil: row.locked_until ?? null,
+      lockedUntil: row.locked_until,
 
       arenaBucket: row.arena_bucket ?? 1,
       arenaRating: row.arena_rating ?? 1200,

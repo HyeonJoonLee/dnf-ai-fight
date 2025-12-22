@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import AppTooltip from "@/components/common/AppTooltip";
+import ThemeToggle from "@/components/Theme/ThemeToggle";
 
 type NavItem = {
     href: string;
@@ -44,7 +45,7 @@ export default function Header() {
                             DNF AI Arena
                         </div>
                         <div className="text-[11px] text-slate-400">
-                            던파 캐릭터 기반 AI 아레나
+                            던파 캐릭터 기반 RPG 아레나
                         </div>
                     </div>
                 </Link>
@@ -88,25 +89,35 @@ export default function Header() {
                     })}
                 </nav>
 
-                {/* 오른쪽: 로그인/유저 */}
+                {/* 오른쪽: 테마 토글 + 로그인/유저 */}
                 <div className="flex items-center gap-2">
+                    {/* ✅ 다크/라이트 토글 버튼 */}
+                    <ThemeToggle />
+
                     {status === "loading" ? (
-                        <div className="h-8 w-24 animate-pulse rounded-md bg-slate-800" />
+                        <div className="h-8 w-24 animate-pulse rounded-md bg-slate-200 dark:bg-slate-800" />
                     ) : isAuthed ? (
                         <div className="flex items-center gap-2">
                             {/* 프로필 */}
-                            <div className="flex items-center gap-2 rounded-md border border-slate-800 bg-slate-900/60 px-2 py-1.5">
-                                <div className="relative h-6 w-6 overflow-hidden rounded-full border border-slate-700 bg-slate-800">
+                            <div className="flex items-center gap-2 rounded-md border px-2 py-1.5
+                              border-slate-200 bg-slate-50
+                              dark:border-slate-800 dark:bg-slate-900/60">
+                                <div className="relative h-6 w-6 overflow-hidden rounded-full border
+                                border-slate-200 bg-slate-100
+                                dark:border-slate-700 dark:bg-slate-800">
                                     {user?.image ? (
-                                        // 외부 이미지면 next.config.js에 domains 추가 필요할 수 있음.
-                                        // 당장 깨지면 <img>로 바꿔도 됨.
-                                            <img src={user?.image ?? ""} alt="profile" className="h-6 w-6 rounded-full object-cover" />
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={user.image}
+                                            alt="profile"
+                                            className="h-6 w-6 rounded-full object-cover"
+                                        />
                                     ) : (
                                         <div className="h-6 w-6" />
                                     )}
                                 </div>
 
-                                <div className="max-w-[120px] truncate text-xs text-slate-200">
+                                <div className="max-w-[120px] truncate text-xs text-slate-800 dark:text-slate-200">
                                     {user?.name ?? "유저"}
                                 </div>
                             </div>
@@ -115,7 +126,9 @@ export default function Header() {
                             <button
                                 type="button"
                                 onClick={() => signOut({ callbackUrl: "/" })}
-                                className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+                                className="rounded-md border px-3 py-1.5 text-xs font-semibold
+                           border-slate-200 bg-white text-slate-800 hover:bg-slate-100
+                           dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                             >
                                 로그아웃
                             </button>

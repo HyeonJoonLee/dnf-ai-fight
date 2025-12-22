@@ -157,7 +157,7 @@ export default function CharacterDetailModal({
                                         서버: <span className="text-slate-100">{character.serverId}</span>
                                     </div>
                                     <div className="mt-1 text-xs text-slate-300">
-                                        레벨:{" "}
+                                        아레나 레벨:{" "}
                                         <span className="text-slate-100">
                                             {character.level ?? "?"}
                                         </span>
