@@ -1,10 +1,11 @@
+//lib/df-analyze/neople.ts
 export type DnfCharacter = {
   serverId: string;
   dnfCharacterId: string;
-  name: string;
+  characterName: string;
   level: number;
   jobName: string;
-  imageUrl: string; // 캐릭터 이미지 URL(Neople)
+  imageUrl: string;
 };
 
 export async function fetchDnfCharacter(serverId: string, characterName: string): Promise<DnfCharacter> {
@@ -30,5 +31,12 @@ export async function fetchDnfCharacter(serverId: string, characterName: string)
 
   const imageUrl = `https://img-api.neople.co.kr/df/servers/${serverId}/characters/${dnfCharacterId}?zoom=2`;
 
-  return { serverId, dnfCharacterId, name, level, jobName, imageUrl };
+  return {
+    serverId,
+    dnfCharacterId,
+    characterName: name,
+    level,
+    jobName,
+    imageUrl,
+  };
 }

@@ -49,14 +49,14 @@ export async function saveCharacterProfile(input: {
                 dnf_character_id: input.dnfCharacterId,
                 character_name: input.name,
                 job_name: input.jobName,
-                level: input.dnflevel,
+                dnf_level: input.dnflevel,
                 last_image_url: input.imageUrl,
                 last_analysis: input.analysis,
 
-                battle_tags: input.dnfbattleTags,
-                battle_stats: input.dnfbattleStats,
-                battle_stats_version: input.dnfbattleStatsVersion,
-                battle_stats_updated_at: new Date().toISOString(),
+                dnf_battle_tags: input.dnfbattleTags,
+                dnf_battle_stats: input.dnfbattleStats,
+                dnf_battle_stats_version: input.dnfbattleStatsVersion,
+                dnf_battle_stats_updated_at: new Date().toISOString(),
             },
             { onConflict: "server_id,dnf_character_id" }
         )

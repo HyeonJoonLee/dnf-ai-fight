@@ -279,10 +279,3 @@ model user_stat_allocations {
   @@unique([user_character_id, stat]) // 캐릭터당 각 스탯 1행
   @@index([user_character_id])
 }
-
-// insert into items (key, name, type, stackable, meta_json)
-// values
-// ('revive_coin', '부활 코인', 'CONSUMABLE', true, '{"effect":"UNLOCK_CHARACTER"}'),
-// ('fatigue_potion_10', '피로도 물약(10)', 'CONSUMABLE', true, '{"effect":"ADD_FATIGUE","amount":10}'),
-// ('fatigue_potion_30', '피로도 물약(30)', 'CONSUMABLE', true, '{"effect":"ADD_FATIGUE","amount":30}')
-// on conflict (key) do nothing;

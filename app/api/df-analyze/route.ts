@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrCreateDfAnalysis } from "@/lib/df-analyze";
-import { AiOverloadedError } from "@/lib/df-analyze/AiOverloadedError";
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,7 +19,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(result, { status: 200 });
   } catch (err: any) {
-    console.error("[df-analyze] error:", err);
 
     // ✅ AI 혼잡은 명확히 분리
     if (err?.name === "AiOverloadedError") {

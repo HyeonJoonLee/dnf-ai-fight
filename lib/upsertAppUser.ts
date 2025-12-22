@@ -1,3 +1,4 @@
+//lib/upsertAppUser.ts
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function upsertAppUser(params: {
@@ -6,6 +7,8 @@ export async function upsertAppUser(params: {
     nickname?: string | null;
     email?: string | null;
 }) {
+    console.log("[upsertAppUser] has service key:", Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY));
+    console.log("[upsertAppUser] url:", process.env.SUPABASE_URL?.slice(0, 30));
     const { provider, providerUserId, nickname, email } = params;
 
     const { data, error } = await supabaseAdmin

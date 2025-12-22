@@ -18,8 +18,8 @@ const SERVERS = [
 type AnalyzeResult = {
     character: {
         serverId: string;
-        dnfCharacterId: string;
-        name: string;
+        characterName: string;
+        dnfCharacterId?: string;
         level: number;
         jobName: string;
     };
@@ -43,6 +43,9 @@ export default function RegisterCharacterModal({
         imageUrl: string;
         analysis?: string;
         wins?: number;
+
+        tags?: any;
+        stats?: any;
     }) => void;
     existingCharacters: Array<{
         serverId: string;
@@ -62,6 +65,7 @@ export default function RegisterCharacterModal({
 
     // ✅ 이미 등록 여부 체크 함수 (문자열 정규화 포함)
     const isAlreadyRegistered = (sid: string, charName: string) => {
+        if (!sid || !charName) return false; // ✅ undefined 방어
         const list = existingCharacters ?? [];
         const n = charName.trim().toLowerCase();
         return list.some(
@@ -115,10 +119,21 @@ export default function RegisterCharacterModal({
     }
 
     async function handleRegister() {
+        console.log("[Register] result =", result);
         if (!result) return;
 
-        // ✅ 2차 방어: 분석 이후에 누가 다른 탭에서 등록했을 수도 있으니
-        if (isAlreadyRegistered(result.character.serverId, result.character.name)) {
+        const regServerId = result?.character?.serverId ?? "";
+        const regName =
+            (result as any)?.character?.name ??
+            (result as any)?.character?.characterName ??
+            "";
+
+        if (!regServerId || !regName.trim()) {
+            setError("등록할 캐릭터 정보가 비어있습니다. 다시 분석해 주세요.");
+            return;
+        }
+
+        if (isAlreadyRegistered(regServerId, regName)) {
             setError("이미 등록된 캐릭터입니다.");
             return;
         }
@@ -131,8 +146,8 @@ export default function RegisterCharacterModal({
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    serverId: result.character.serverId,
-                    characterName: result.character.name,
+                    serverId: regServerId,
+                    characterName: regName,
                 }),
             });
 
@@ -144,7 +159,10 @@ export default function RegisterCharacterModal({
                 return;
             }
 
-            // ✅ 등록 성공시에만 state 반영
+            const charData = data.character;
+            const finalTags = charData.userBattleTags ?? charData.dnfBattleTags ?? charData.battleTags;
+            const finalStats = charData.userBattleStats ?? charData.dnfBattleStats ?? charData.battleStats;
+
             onRegistered({
                 id: data.character.id,
                 serverId: data.character.serverId,
@@ -154,6 +172,8 @@ export default function RegisterCharacterModal({
                 imageUrl: data.character.imageUrl,
                 wins: data.character.wins ?? 0,
                 analysis: data.character.analysis,
+                tags: finalTags,
+                stats: finalStats,
             });
 
             onClose();
@@ -163,6 +183,7 @@ export default function RegisterCharacterModal({
             setLoading(false);
         }
     }
+
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -235,7 +256,7 @@ export default function RegisterCharacterModal({
                         {result && (
                             <section className="mt-5 grid grid-cols-1 md:grid-cols-[220px,1fr] gap-4 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
                                 <CharacterCard
-                                    name={result.character.name}
+                                    name={result.character.characterName}
                                     serverName={result.character.serverId}
                                     spriteUrl={result.imageUrl}
                                 />

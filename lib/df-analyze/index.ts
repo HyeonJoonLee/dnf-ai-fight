@@ -104,7 +104,7 @@ export async function ensureCharacterProfileForAnalyze(serverId: string, charact
     const saved = await saveCharacterProfile({
         serverId: dnf.serverId,
         dnfCharacterId: dnf.dnfCharacterId,
-        name: dnf.name,
+        name: dnf.characterName,
         dnflevel: dnf.level,
         jobName: dnf.jobName,
         imageUrl: dnf.imageUrl,
